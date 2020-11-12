@@ -1,0 +1,13 @@
+//
+// Created by izzy on 11/2/20.
+//
+
+#ifndef COMMON_CONSTANTS_H
+#define COMMON_CONSTANTS_H
+
+#define MAX_PKT_SIZE    1472
+#define AGENT_CONTROL_PORT 5679
+
+#define MANAGER_CONTROL_PORT 4628
+
+#endif // COMMON_CONSTANTS_H
