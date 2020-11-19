@@ -2,3 +2,7 @@ agent
 client
 manager
 
+cmake-build-debug
+CMakeLists.txt
+
+.idea

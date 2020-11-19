@@ -18,6 +18,8 @@
 #define TYPE_DELETE_FLOW 6
 
 // Debug
+#define TYPE_PING 97
+#define TYPE_PONG 98
 #define TYPE_PRINT_STATE 99
 
 typedef struct Ack_s {
@@ -25,17 +27,20 @@ typedef struct Ack_s {
 } Ack;
 
 typedef struct FlowRouting_s {
+    int flowId;
     int spinesPort;
     int exitPoint;
 } FlowRouting;
 
 typedef struct RemoveFlowRouting_s {
-    int srcAddr;
+    int flowId;
 } RemoveFlowRouting;
 
 typedef struct RegisterFlow_s {
+    char switchAddr[16]; // 127.0.0.1:5005X
+    char myIp[16];
+    char myMac[18];
     Location dst;
-    Location switchAddr;
 } RegisterFlow;
 
 typedef struct DeleteFlow_s {

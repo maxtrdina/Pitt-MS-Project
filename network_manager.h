@@ -6,21 +6,17 @@
 #define MANAGER_NETWORK_MANAGER_H
 
 #include "common.h"
-
-typedef struct AddFlowRequest_s {
-    Location destination;
-    Location switchAddr;
-} AddFlowRequest;
+#include "protocol.h"
 
 typedef struct Flow_s {
-    Location switchAddr;
+    char switchAddr[16];
     Location originalDst;
     Location newDst;
     // TODO add backbone info
 } Flow;
 
 void nm_initialize();
-int create_flow(AddFlowRequest request);
+int create_flow(RegisterFlow flow);
 void remove_flow(int flowId);
 void nm_print_state();
 

@@ -59,11 +59,7 @@ int main(char argc, char *argv[]) {
 
         if (message->type == TYPE_REGISTER_FLOW) {
             printf("Register Flow message.\n");
-            AddFlowRequest request = {
-                    .destination = message->registerFlow.dst,
-                    .switchAddr = message->registerFlow.switchAddr
-            };
-            int flowId = create_flow(request);
+            int flowId = create_flow(message->registerFlow);
             Message out = {.type = TYPE_ACK, .ack = { .data = flowId } };
             send(client_fd, &out, sizeof(Message), 0);
         } else if (message->type == TYPE_DELETE_FLOW) {

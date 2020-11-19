@@ -8,7 +8,7 @@
 #include "map.h"
 #include "protocol.h"
 
-extern Map* flowRoutingMap;
+//extern Map* flowRoutingMap;
 
 void run_control();
 

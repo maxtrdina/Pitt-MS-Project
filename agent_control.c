@@ -9,7 +9,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
-#include "control.h"
+#include "agent_control.h"
+#include "agent_data.h"
 #include "protocol.h"
 #include "map.h"
 #include "constants.h"
@@ -63,18 +64,18 @@ void run_control() {
     while (!terminate) {
         client_fd = accept(server_fd, (struct sockaddr *)&client_sockaddr, &client_sockaddr_size);
 
-        printf("a\n");
         recv(client_fd, buf, sizeof(Message), 0);
         printf("Message: %s\n", buf);
         fprintf(stderr, "Value of errno: %d\n", errno);
-        printf("a\n");
         message = (Message*)buf;
 
         printf("Received type: %d\n", message->type);
         if (message->type == TYPE_ADD_FLOW_ROUTING) {
-            //add_flow_routing(message->flowRouting);
             printf("Request to add flow routing to %d\n", message->flowRouting.spinesPort);
-            Message out = {.type = TYPE_ACK, .ack = { .data = 1234 } };
+            int port = create_interface();
+            printf("Interface created at %d.\n", port);
+            add_flow_routing(message->flowRouting);
+            Message out = {.type = TYPE_ACK, .ack = { .data = port } };
             send(client_fd, &out, sizeof(Message), 0);
         } else if (message->type == TYPE_REMOVE_FLOW_ROUTING) {
             remove_flow_routing(message->removeFlowRouting);
@@ -93,10 +94,10 @@ void run_control() {
 
 void add_flow_routing(FlowRouting flowRouting) {
     printf("Adding Flow Routing.\n");
-    map_insert(flowRoutingMap, flowRouting.spinesPort, &flowRouting);
+    map_insert(flowRoutingMap, flowRouting.flowId, &flowRouting);
 }
 
 void remove_flow_routing(RemoveFlowRouting removeFlowRouting) {
     printf("Removing Flow Routing.");
-    map_delete(flowRoutingMap, removeFlowRouting.srcAddr);
+    map_delete(flowRoutingMap, removeFlowRouting.flowId);
 }

@@ -4,7 +4,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include "constants.h"
-#include "control.h"
+#include "agent_control.h"
 #include "map.h"
 
 #define MAX_PKT_SIZE 1472
@@ -41,7 +41,7 @@ int main(int argc, char *argv[]) {
 
     run_control();
 
-    printf("Done with control");
+    /*printf("Done with control");
     
     tcp_in_sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (tcp_in_sock < 0) {
@@ -77,5 +77,5 @@ int main(int argc, char *argv[]) {
         
         buf[MAX_PKT_SIZE-1] = '\0';
         printf("Message: %s\n", buf);
-    }
+    }*/
 }
