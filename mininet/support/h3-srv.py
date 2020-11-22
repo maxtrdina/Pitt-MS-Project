@@ -28,7 +28,7 @@ def deal_with_connection(connection):
 
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sock.bind(('10.0.3.3', 8257))
+sock.bind(('10.0.3.3', 7341))
 sock.listen(1)
 
 while True:

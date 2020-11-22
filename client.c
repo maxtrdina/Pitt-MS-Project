@@ -51,7 +51,7 @@ void send_command(int option) {
                 .switchAddr = "\0", // 127.0.0.1:5005X
                 .myIp = "\0",
                 .myMac = "\0",
-                .dst = { .address = "10.0.2.2\0", .port = ++port }
+                .dst = { .address = "10.0.2.2\0", .port = port++ }
         } };
         strcpy(message.registerFlow.switchAddr, switchAddr);
         strcpy(message.registerFlow.myIp, myIp);
@@ -61,6 +61,13 @@ void send_command(int option) {
         printf("Flow? ");
         scanf("%d", &message.deleteFlow.flowId);
     } else if (option == 3) {
+        printf("PING!\n");
+        message = (Message){ .type = TYPE_PING };
+        Message* rec = send_message_r(message, "10.0.2.2", 5647, 1);
+        if (rec->type == TYPE_PONG) {
+            printf("PONG!\n");
+        }
+    } else if (option == 4) {
         message = (Message){ .type = TYPE_PRINT_STATE };
     } else {
         return;

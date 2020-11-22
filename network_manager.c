@@ -53,10 +53,10 @@ int create_flow(RegisterFlow flow) {
     fprintf(fptr, "%s", flow.switchAddr);
     fprintf(fptr, "\n%s", flow.myIp);
     fprintf(fptr, "\n%s", flow.myMac);
-    fprintf(fptr, "\n%s:%d-%s:%i", flow.dst.address, flow.dst.port, newFlow->newDst.address, newFlow->newDst.port);
+    fprintf(fptr, "\n%s:%d-%s:%d", flow.dst.address, flow.dst.port, newFlow->newDst.address, newFlow->newDst.port);
     fclose(fptr);
 
-    char ackFilename[24+6];
+    char ackFilename[23+6];
     sprintf(ackFilename, "ext_controller/reqs/ack%d", flowId);
     while (!fileExists(ackFilename)) {
         usleep(50*1000);

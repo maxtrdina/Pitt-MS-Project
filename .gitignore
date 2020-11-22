@@ -1,8 +1,16 @@
-agent
-client
-manager
-
 cmake-build-debug
 CMakeLists.txt
 
 .idea
+
+# Binaries
+agent
+client
+manager
+
+# Logs and caps
+mininet/logs/*
+mininet/pcaps/*
+
+# Build files (generated)
+mininet/build/*

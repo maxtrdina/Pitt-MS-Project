@@ -8,8 +8,8 @@ from time import sleep
 # Import P4Runtime lib from parent utils dir
 # Probably there's a better way of doing this.
 sys.path.append(
-    os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                 '../../utils/'))
+    os.path.join(os.path.dirname(os.path.abspath(__file__)), 'utils/')
+)
 import p4runtime_lib.bmv2
 from p4runtime_lib.switch import ShutdownAllSwitchConnections
 import p4runtime_lib.helper
@@ -212,7 +212,7 @@ def main(p4info_file_path, bmv2_file_path):
     ShutdownAllSwitchConnections()
 
 if __name__ == '__main__':
-    stream = os.popen('p4c-bm2-ss --p4v 16 --p4runtime-files build/replacement.p4.p4info.txt -o build/replacement.json other/basic_replacement.p4')
+    stream = os.popen('p4c-bm2-ss --p4v 16 --p4runtime-files build/replacement.p4.p4info.txt -o build/replacement.json alternate/alternate.p4')
     out = stream.read()
     print out
     
@@ -226,7 +226,7 @@ if __name__ == '__main__':
             
     s1.MasterArbitrationUpdate()
     s1.SetForwardingPipelineConfig(p4info=p4info_helper.p4info,
-                                       bmv2_json_file_path="build/replacement.json")
+                                   bmv2_json_file_path="build/replacement.json")
                                        
     ShutdownAllSwitchConnections()
     

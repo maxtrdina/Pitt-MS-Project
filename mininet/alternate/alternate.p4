@@ -77,22 +77,24 @@ struct headers {
 /*
  * Own host addresses, filled in by generator
  */
-
-const bit<32> my_host_ip = 8w10++8w0++8w1++8w1; // 8w10++8w0++8w1++8w1;
-const bit<48> my_host_mac = 8w0x08++8w0x00++8w0x00++8w0x00++8w0x01++8w0x11; // 8w8++8w0++8w0++8w0++8w1++8w0x11;
+ 
+const bit<32> h1_ip = 8w10++8w0++8w1++8w1;
+const bit<32> h2_ip = 8w10++8w0++8w2++8w2;
+const bit<32> h3_ip = 8w10++8w0++8w3++8w3;
 
 /*
  * Next hop address (should be another switch), filled in by generator
  */
  
-const bit<48> next_hop_mac = 8w8++8w0++8w0++8w0++8w3++8w0; // 8w8++8w0++8w0++8w0++8w3++8w0;
+const bit<48> h1_mac = 8w8++8w0++8w0++8w0++8w1++8w0x11;
+const bit<48> next_hop_mac = 8w8++8w0++8w0++8w0++8w3++8w0;
 
 /*
  * Relevant addresses and ports, filled in by generator
  */
 
-
-
+//$addresses
+//$ports
 
 
 /*************************************************************************
@@ -200,8 +202,8 @@ control MyIngress(inout headers hdr,
         default_action = drop();
         
         const entries = {
-            ( my_host_ip,          _) : forward(next_hop_mac, 2);
-            (          _, my_host_ip) : forward(my_host_mac, 1);
+            (     _, h1_ip) : forward(h1_mac, 1);
+            ( h1_ip,     _) : forward(next_hop_mac, 2);
         }
     }
     
@@ -226,16 +228,16 @@ control MyIngress(inout headers hdr,
         const entries = {
             // Incoming traffic rules, identified by source IP and port
             // Type: ( srcIp, srcPort, my_host_ip, _): fake_source()
-            ( 8w10++8w0++8w3++8w3, 11568, my_host_ip, _): fake_source(my_host_mac, 8w10++8w0++8w2++8w2, 5647, 1);
+            ( h2_ip, 7342, h1_ip, _): fake_source(h1_mac, h3_ip, 7341, 1);
             
             // Outgoing traffic rules, identified by destination IP and port
             // Type: ( my_host_ip, _, dstIp, dstPort): reroute()
-            ( my_host_ip, _, 8w10++8w0++8w2++8w2, 5647): reroute(next_hop_mac, 8w10++8w0++8w3++8w3, 11568, 2);
+            ( h1_ip, _, h3_ip, 7341): reroute(next_hop_mac, h2_ip, 7342, 2);
             
             // All incoming traffic not captured by other rules
-            ( _, _, my_host_ip, _) : forward(my_host_mac, 1);
+            ( _, _, h1_ip, _) : forward(h1_mac, 1);
             // All outgoing traffic not captured by other rules
-            ( _, _,          _, _) : forward(next_hop_mac, 2);
+            ( _, _,     _, _) : forward(next_hop_mac, 2);
         }
     }
     
@@ -260,16 +262,16 @@ control MyIngress(inout headers hdr,
         const entries = {
             // Incoming traffic rules, identified by source IP and port
             // Type: ( srcIp, srcPort, my_host_ip, _): fake_source()
-            ( 8w10++8w0++8w3++8w3, 11568, my_host_ip, _): fake_source(my_host_mac, 8w10++8w0++8w2++8w2, 5647, 1);
+            ( h2_ip, 7342, h1_ip, _): fake_source(h1_mac, h3_ip, 7341, 1);
             
             // Outgoing traffic rules, identified by destination IP and port
             // Type: ( my_host_ip, _, dstIp, dstPort): reroute()
-            ( my_host_ip, _, 8w10++8w0++8w2++8w2, 5647): reroute(next_hop_mac, 8w10++8w0++8w3++8w3, 11568, 2);
+            ( h1_ip, _, h3_ip, 7341): reroute(next_hop_mac, h2_ip, 7342, 2);
             
             // All incoming traffic not captured by other rules
-            ( _, _, my_host_ip, _) : forward(my_host_mac, 1);
+            ( _, _, h1_ip, _) : forward(h1_mac, 1);
             // All outgoing traffic not captured by other rules
-            ( _, _,          _, _) : forward(next_hop_mac, 2);
+            ( _, _,     _, _) : forward(next_hop_mac, 2);
         }
     }
     
