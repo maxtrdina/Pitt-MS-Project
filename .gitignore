@@ -14,3 +14,9 @@ mininet/pcaps/*
 
 # Build files (generated)
 mininet/build/*
+
+# Spines; contributor should insert manually
+spines
+
+# Temp folder for compilation products and whatnot
+tmp
