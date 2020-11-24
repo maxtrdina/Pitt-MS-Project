@@ -8,14 +8,19 @@
 #include "constants.h"
 #include "common.h"
 
+// Generic
 #define TYPE_ACK 1
-#define TYPE_ADD_FLOW_ROUTING 2
-#define TYPE_REMOVE_FLOW_ROUTING 3
-#define TYPE_TERMINATE 4
 
 // Network Manager
-#define TYPE_REGISTER_FLOW 5
-#define TYPE_DELETE_FLOW 6
+#define TYPE_REGISTER_FLOW 2
+#define TYPE_DELETE_FLOW 3
+
+// Agent's Control Plane
+#define TYPE_ADD_FLOW_ROUTING_INBOUND 4
+#define TYPE_ADD_FLOW_ROUTING_OUTBOUND 5
+#define TYPE_REMOVE_FLOW_ROUTING 6
+#define TYPE_TERMINATE 7
+
 
 // Debug
 #define TYPE_PING 97
@@ -28,8 +33,9 @@ typedef struct Ack_s {
 
 typedef struct FlowRouting_s {
     int flowId;
-    int spinesPort;
-    int exitPoint;
+    // Outbound: Flow destination. ie. when the packets come out of spines, where do we send it?
+    // Inbound: Spines destination. ie. where does the packet go when it comes out of the spines network?
+    Location target;
 } FlowRouting;
 
 typedef struct RemoveFlowRouting_s {

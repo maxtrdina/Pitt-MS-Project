@@ -70,9 +70,18 @@ void run_control() {
         message = (Message*)buf;
 
         printf("Received type: %d\n", message->type);
-        if (message->type == TYPE_ADD_FLOW_ROUTING) {
-            printf("Request to add flow routing to %d\n", message->flowRouting.spinesPort);
-            int port = create_interface();
+        if (message->type == TYPE_ADD_FLOW_ROUTING_INBOUND) {
+            Location target = message->flowRouting.target;
+            printf("Request to add inbound flow routing to %s:%d\n", target.address, target.port);
+            int port = create_interface(1, target);
+            printf("Interface created at %d.\n", port);
+            add_flow_routing(message->flowRouting);
+            Message out = {.type = TYPE_ACK, .ack = { .data = port } };
+            send(client_fd, &out, sizeof(Message), 0);
+        } else if (message->type == TYPE_ADD_FLOW_ROUTING_OUTBOUND) {
+            Location target = message->flowRouting.target;
+            printf("Request to add outbound flow routing to %s:%d\n", target.address, target.port);
+            int port = create_interface(0, target);
             printf("Interface created at %d.\n", port);
             add_flow_routing(message->flowRouting);
             Message out = {.type = TYPE_ACK, .ack = { .data = port } };

@@ -36,8 +36,8 @@ int create_flow(RegisterFlow flow) {
     newFlow->newDst = target.location;
     printf("Flow populated\n");
 
-    Message message = { .type = TYPE_ADD_FLOW_ROUTING, .flowRouting = {
-            .flowId = flowId, .spinesPort = 9999, .exitPoint = 5555
+    Message message = { .type = TYPE_ADD_FLOW_ROUTING_INBOUND, .flowRouting = {
+            .flowId = flowId, .target = { .address = "11223344", .port = 55 }
     } };
     printf("Message prepped\n");
     Message* response = send_message_r(message, newFlow->newDst.address, newFlow->newDst.port, 1);

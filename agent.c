@@ -21,24 +21,6 @@ int main(int argc, char *argv[]) {
     fd_set mask, mask_template, dummy_mask;
     struct sockaddr_in tcp_in_sockaddr;
 
-    /*Test* tests = (Test*)malloc(5*sizeof(Test));
-    for (int i = 0; i < 5; i++) {
-        tests[i].number = i*2;
-    }
-
-    Map* map = map_create();
-    printf("Created\n");
-    map_insert(map, 2, (void*)&tests[0]);
-    map_insert(map, 7, (void*)&tests[1]);
-    printf("Got 2: %d\n", ((Test*)map_get(map, 2))->number);
-    map_insert(map, 2, (void*)&tests[3]);
-    printf("Got 2: %d\n", ((Test*)map_get(map, 2))->number);
-    map_insert(map, 10, (void*)&tests[3]);
-    map_insert(map, 15, (void*)&tests[2]);
-    map_insert(map, 16, (void*)&tests[4]);
-    map_delete(map, 2);
-    map_print(map);*/
-
     run_control();
 
     /*printf("Done with control");

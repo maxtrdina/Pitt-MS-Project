@@ -2,6 +2,8 @@
 // Created by izzy on 11/18/20.
 //
 
+#include <netdb.h>
+
 #include <pthread.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -10,22 +12,40 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <memory.h>
 #include "agent_data.h"
 #include "protocol.h"
+#include "spines/libspines/spines_lib.h"
+
+#define MAX_PKT_SIZE 1472
 
 int done = 0;
 // Start data port
 int currentPort = 11567;
 
+void *createInbound_thread(void* target);
+int createInbound(int port);
+
+void *createOutbound_thread(void *target);
+int createOutbound(int port);
+
 void *createSrcIn_entry(void* arg);
 int createSrcIn(int port);
 
-int create_interface() {
+int getNextPort() {
+    return currentPort++;
+}
+
+int create_interface(int inbound, Location target) {
     pthread_t thread_handle;
     done = 0;
 
     printf("Creating interface...\n");
-    pthread_create(&thread_handle, NULL, createSrcIn_entry, (void*)1);
+    if (inbound) {
+        pthread_create(&thread_handle, NULL, createInbound_thread, (void *) &target);
+    } else {
+        pthread_create(&thread_handle, NULL, createOutbound_thread, (void *) &target);
+    }
 
     while (!done) {
         // TODO barrier?
@@ -34,6 +54,151 @@ int create_interface() {
     printf("Thread listening on port %d\n", done);
 
     return done;
+}
+
+void *createInbound_thread(void* target) {
+    createInbound(2);
+    return NULL;
+}
+
+int createInbound(int port) {
+    int recv_sk, spines_sk;
+    int ret, bytes;
+    char buffer[MAX_PKT_SIZE];
+    struct sockaddr_in host, serv_addr, name;
+    struct hostent h_ent;
+    struct hostent *host_ptr;
+    struct sockaddr *daemon_ptr = NULL;
+    fd_set mask, dummy_mask, temp_mask;
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(8100);
+    host_ptr = gethostbyname("127.0.0.1");
+    memcpy(&serv_addr.sin_addr, host_ptr->h_addr, sizeof(struct in_addr));
+    daemon_ptr = (struct sockaddr *)&serv_addr;
+
+    memcpy(&h_ent, gethostbyname("127.0.0.1"), sizeof(h_ent));
+    memcpy(&host.sin_addr, h_ent.h_addr, sizeof(host.sin_addr));
+
+    host.sin_family = AF_INET;
+    host.sin_port   = htons(8108);
+
+    spines_sk = spines_socket(PF_SPINES, SOCK_DGRAM, 0, daemon_ptr);
+    if (spines_sk < 0) {
+        printf("Client socket error, can't open spines_sk\n");
+        return 0;
+    }
+
+    // Traffic from the sender
+    recv_sk = socket(AF_INET, SOCK_DGRAM, 0);
+    if (recv_sk < 0) {
+        printf("Couldn't open socket to get data from the sender\n");
+        return 0;
+    }
+
+    name.sin_family = AF_INET;
+    name.sin_addr.s_addr = INADDR_ANY;
+    name.sin_port = htons(8109);
+
+    if ( bind( recv_sk, (struct sockaddr *)&name, sizeof(name) ) < 0 ) {
+        printf("Bind for recv socket failed\n");
+        return 0;
+    }
+
+    FD_ZERO( &mask );
+    FD_ZERO( &dummy_mask );
+    FD_SET( recv_sk, &mask );
+
+    for(;;) {
+        temp_mask = mask;
+        select( FD_SETSIZE, &temp_mask, &dummy_mask, &dummy_mask, NULL);
+
+        bytes = recv( recv_sk, buffer, sizeof(buffer), 0);
+        if (bytes < 0) {
+            break;
+        }
+
+        /* Send over spines */
+        spines_sendto(spines_sk, buffer, bytes, 0, (struct sockaddr *)&host, sizeof(struct sockaddr));
+    }
+
+    close(recv_sk);
+    spines_close(spines_sk);
+}
+
+void *createOutbound_thread(void *target) {
+    while (!createOutbound(getNextPort())) { }
+}
+
+int createOutbound(int port) {
+    int out_socket, spines_sk;
+    int ret, bytes;
+    char buffer[MAX_PKT_SIZE];
+    struct sockaddr_in serv_addr, name;
+    struct sockaddr_in out_addr;
+    struct hostent  *host_ptr;
+    struct sockaddr *daemon_ptr = NULL;
+    fd_set  mask, dummy_mask, temp_mask;
+
+    struct timeval *timeout_ptr;
+
+    serv_addr.sin_family = AF_INET;
+    serv_addr.sin_port = htons(8100); // Default Spines port
+    host_ptr = gethostbyname("10.0.3.3"); // I'm only going to be running spines in that node
+    memcpy(&serv_addr.sin_addr, host_ptr->h_addr, sizeof(struct in_addr));
+    daemon_ptr = (struct sockaddr *)&serv_addr;
+
+    spines_sk = spines_socket(PF_INET, SOCK_DGRAM, 0, daemon_ptr);
+    if (spines_sk <= 0) {
+        printf("Couldn't create spines socket...");
+        return 0;
+    }
+
+    name.sin_family = AF_INET;
+    name.sin_addr.s_addr = INADDR_ANY;
+    name.sin_port = htons(port);
+
+    if (spines_bind(spines_sk, (struct sockaddr *)&name, sizeof(name)) < 0) {
+        printf("spines_bind error\n");
+        return 0;
+    }
+
+    /*out_socket = socket(AF_INET, SOCK_DGRAM, 0);
+    if (out_socket < 0) {
+        printf("couldn't open outbound socket");
+        return 0;
+    }*/
+
+    out_addr.sin_family = AF_INET;
+    out_addr.sin_addr.s_addr = inet_addr("" /* NEED */);
+    out_addr.sin_port = htons(55 /* NEED */);
+
+    FD_ZERO(&mask);
+    FD_ZERO(&dummy_mask);
+    FD_SET(spines_sk, &mask);
+
+    for(;;) {
+        temp_mask = mask;
+
+        ret = select(FD_SETSIZE, &temp_mask, &dummy_mask, &dummy_mask, NULL);
+        if (ret > 0) {
+            bytes = spines_recvfrom(spines_sk, buffer, sizeof(buffer), 0, NULL, 0);
+            if (bytes <= 0) {
+                printf("Disconnected by spines...\n");
+                break;
+            } else {
+                printf("Got some data from spines\n");
+                printf("%s\n", buffer);
+            }
+
+            //send(out_socket, buffer, sizeof(buffer), 0);
+        }
+    }
+
+    spines_close(spines_sk);
+    close(out_socket);
+
+    return 1;
 }
 
 void *createSrcIn_entry(void* arg) {
