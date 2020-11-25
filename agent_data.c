@@ -65,23 +65,23 @@ int createInbound(int port) {
     int inbound_sk, spines_sk;
     int ret, bytes;
     char buffer[MAX_PKT_SIZE];
-    struct sockaddr_in host, spines_addr, inbound_addr;
+    struct sockaddr_in spines_addr, spines_daemon_addr, inbound_addr;
     struct hostent h_ent;
     struct hostent *host_ptr;
     struct sockaddr *daemon_ptr = NULL;
     fd_set mask, dummy_mask, temp_mask;
 
-    spines_addr.sin_family = AF_INET;
-    spines_addr.sin_port = htons(8100);
+    spines_daemon_addr.sin_family = AF_INET;
+    spines_daemon_addr.sin_port = htons(8100);
     host_ptr = gethostbyname("localhost");
-    memcpy(&spines_addr.sin_addr, host_ptr->h_addr, sizeof(struct in_addr));
-    daemon_ptr = (struct sockaddr *)&spines_addr;
+    memcpy(&spines_daemon_addr.sin_addr, host_ptr->h_addr, sizeof(struct in_addr));
+    daemon_ptr = (struct sockaddr *)&spines_daemon_addr;
 
     memcpy(&h_ent, gethostbyname("localhost"), sizeof(h_ent));
-    memcpy(&host.sin_addr, h_ent.h_addr, sizeof(host.sin_addr));
+    memcpy(&spines_addr.sin_addr, h_ent.h_addr, sizeof(spines_addr.sin_addr));
 
-    host.sin_family = AF_INET;
-    host.sin_port = htons(8108);
+    spines_addr.sin_family = AF_INET;
+    spines_addr.sin_port = htons(8108);
 
     if (spines_init(daemon_ptr) < 0) {
         printf("Couldn't spines_init\n");
@@ -136,7 +136,11 @@ int createInbound(int port) {
         }
 
         /* Send over spines */
-        spines_sendto(spines_sk, buffer, bytes, 0, (struct sockaddr *)&host, sizeof(struct sockaddr));
+        if (spines_sendto(spines_sk, buffer, bytes, 0, (struct sockaddr *)&spines_addr, sizeof(struct sockaddr)) < 0) {
+            printf("Some spines_sendto error happened.\n");
+        } else {
+            printf("Data sent.\n");
+        }
     }
 
     close(inbound_sk);
@@ -151,7 +155,7 @@ int createOutbound(int port) {
     int out_socket, spines_sk;
     int ret, bytes;
     char buffer[MAX_PKT_SIZE];
-    struct sockaddr_in serv_addr, name;
+    struct sockaddr_in spines_daemon_addr, spines_addr;
     struct sockaddr_in out_addr;
     struct hostent  *host_ptr;
     struct sockaddr *daemon_ptr = NULL;
@@ -159,11 +163,11 @@ int createOutbound(int port) {
 
     struct timeval *timeout_ptr;
 
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(8100); // Default Spines port
-    host_ptr = gethostbyname("localhost"); // TODO I'm only going to be running spines in that node
-    memcpy(&serv_addr.sin_addr, host_ptr->h_addr, sizeof(struct in_addr));
-    daemon_ptr = (struct sockaddr *)&serv_addr;
+    spines_daemon_addr.sin_family = AF_INET;
+    spines_daemon_addr.sin_port = htons(8100); // Default Spines port
+    host_ptr = gethostbyname("localhost" /* 10.0.3.3 */); // TODO I'm only going to be running spines in that node
+    memcpy(&spines_daemon_addr.sin_addr, host_ptr->h_addr, sizeof(struct in_addr));
+    daemon_ptr = (struct sockaddr *)&spines_daemon_addr;
 
     if (spines_init(daemon_ptr) < 0) {
         printf("flooder_client: socket error\n");
@@ -180,11 +184,11 @@ int createOutbound(int port) {
         printf("Spines socket created\n");
     }
 
-    name.sin_family = AF_INET;
-    name.sin_addr.s_addr = INADDR_ANY;
-    name.sin_port = htons(port);
+    spines_addr.sin_family = AF_INET;
+    spines_addr.sin_addr.s_addr = INADDR_ANY;
+    spines_addr.sin_port = htons(port);
 
-    if (spines_bind(spines_sk, (struct sockaddr *)&name, sizeof(name)) < 0) {
+    if (spines_bind(spines_sk, (struct sockaddr *)&spines_addr, sizeof(spines_addr)) < 0) {
         printf("spines_bind error\n");
         return 0;
     } else {
@@ -208,8 +212,10 @@ int createOutbound(int port) {
     for(;;) {
         temp_mask = mask;
 
+        printf("Calling select...\n");
         ret = select(FD_SETSIZE, &temp_mask, &dummy_mask, &dummy_mask, NULL);
         if (ret > 0) {
+            printf("Something exciting happened... receiving\n");
             bytes = spines_recvfrom(spines_sk, buffer, sizeof(buffer), 0, NULL, 0);
             if (bytes <= 0) {
                 printf("Disconnected by spines...\n");
@@ -224,7 +230,7 @@ int createOutbound(int port) {
     }
 
     spines_close(spines_sk);
-    close(out_socket);
+    //close(out_socket);
 
     return 1;
 }
