@@ -10,16 +10,12 @@
 #define MAX_PKT_SIZE 1472
 #define IN_PORT      5678
 
-typedef struct Test_s {
-    int number;
-} Test;
-
 int main(int argc, char *argv[]) {
-    int tcp_in_sock, udp_in_sock;
+    /*int tcp_in_sock, udp_in_sock;
     int bytes;
     char buf[MAX_PKT_SIZE];
     fd_set mask, mask_template, dummy_mask;
-    struct sockaddr_in tcp_in_sockaddr;
+    struct sockaddr_in tcp_in_sockaddr;*/
 
     run_control();
 
