@@ -5,6 +5,7 @@
 #include <netinet/in.h>
 #include "constants.h"
 #include "agent_control.h"
+#include "agent_data.h"
 #include "map.h"
 
 #define MAX_PKT_SIZE 1472
@@ -17,6 +18,12 @@ int main(int argc, char *argv[]) {
     fd_set mask, mask_template, dummy_mask;
     struct sockaddr_in tcp_in_sockaddr;*/
 
+    if (argc < 2) {
+        printf("Please, pass the local address as a parameter:\n");
+        printf("\t./agent 127.0.0.1\n");
+        return 0;
+    }
+    set_hostname(argv[1]);
     run_control();
 
     /*printf("Done with control");

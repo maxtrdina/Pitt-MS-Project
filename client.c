@@ -44,6 +44,8 @@ int main(int argc, char *argv[]) {
 
 void send_command(int option) {
     Message message;
+    Location target = { .address = "10.0.3.3", .port = MANAGER_CONTROL_PORT };
+    int expect_response = 0;
     if (option == 0) {
         message = (Message){ .type = TYPE_TERMINATE };
     } else if (option == 1) {
@@ -56,6 +58,7 @@ void send_command(int option) {
         strcpy(message.registerFlow.switchAddr, switchAddr);
         strcpy(message.registerFlow.myIp, myIp);
         strcpy(message.registerFlow.myMac, myMac);
+        expect_response = 1;
     } else if (option == 2) {
         message = (Message){ .type = TYPE_DELETE_FLOW, .deleteFlow = { .flowId = 0 } };
         printf("Flow? ");
@@ -68,15 +71,36 @@ void send_command(int option) {
             printf("PONG!\n");
         }
     } else if (option == 4) {
+        printf("Creating outbound flow...\n");
+        message = (Message) {.type = TYPE_ADD_FLOW_ROUTING_OUTBOUND, .flowRouting = {
+                .flowId = 999, .target = {.address = "127.0.0.1", .port = 11999}
+        }};
+        strcpy(target.address, "127.0.0.1\0");
+        target.port = AGENT_CONTROL_PORT;
+        expect_response = 1;
+    } else if (option == 5) {
+        printf("Creating inbound flow...\n");
+        message = (Message) {.type = TYPE_ADD_FLOW_ROUTING_INBOUND, .flowRouting = {
+                .flowId = 999, .target = {.address = "localhost", .port = 8108}
+        }};
+        strcpy(target.address, "127.0.0.1\0");
+        target.port = AGENT_CONTROL_PORT;
+        expect_response = 1;
+    } else if (option == 6) {
         message = (Message){ .type = TYPE_PRINT_STATE };
     } else {
         return;
     }
 
     printf("Sending...\n");
-    Message* received = send_message_r(message, "10.0.3.3\0", MANAGER_CONTROL_PORT, option == 1);
+    Message* received = send_message_r(message, target.address, target.port, expect_response);
     if (received != NULL) {
         printf("Got flow ID: %d\n", received->ack.data);
+        if (option == 4) {
+            printf("Outbound flow open on port %d\n", received->ack.data);
+        } else if (option == 5) {
+            printf("Inbound flow open on port %d\n", received->ack.data);
+        }
         free(received);
     }
 

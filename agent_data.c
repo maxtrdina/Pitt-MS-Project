@@ -23,17 +23,24 @@ int done = 0;
 // Start data port
 int currentPort = 11567;
 
+// To configure for testing
+char hostname[16];
+
 void *createInbound_thread(void* target);
-int createInbound(int port);
+int createInbound(int port, Location target);
 
 void *createOutbound_thread(void *target);
-int createOutbound(int port, Location target);
+int createOutbound(Location target);
 
 void *createSrcIn_entry(void* arg);
 int createSrcIn(int port);
 
 int getNextPort() {
     return currentPort++;
+}
+
+void set_hostname(char *new_hostname) {
+    strcpy(hostname, new_hostname);
 }
 
 int create_interface(int inbound, Location target) {
@@ -59,12 +66,12 @@ int create_interface(int inbound, Location target) {
 
 void *createInbound_thread(void* target) {
     Location *location = (Location*)target;
-    while (!createInbound(getNextPort())) { }
+    while (!createInbound(getNextPort(), *location)) { }
 //    createInbound(2);
 //    return NULL;
 }
 
-int createInbound(int port) {
+int createInbound(int port, Location target) {
     int inbound_sk, spines_sk;
     int ret, bytes;
     char buffer[MAX_PKT_SIZE];
@@ -76,15 +83,15 @@ int createInbound(int port) {
 
     spines_daemon_addr.sin_family = AF_INET;
     spines_daemon_addr.sin_port = htons(8100);
-    host_ptr = gethostbyname("localhost");
+    host_ptr = gethostbyname(hostname);
     memcpy(&spines_daemon_addr.sin_addr, host_ptr->h_addr, sizeof(struct in_addr));
     daemon_ptr = (struct sockaddr *)&spines_daemon_addr;
 
-    memcpy(&h_ent, gethostbyname("localhost"), sizeof(h_ent));
+    memcpy(&h_ent, gethostbyname(target.address), sizeof(h_ent));
     memcpy(&spines_addr.sin_addr, h_ent.h_addr, sizeof(spines_addr.sin_addr));
 
     spines_addr.sin_family = AF_INET;
-    spines_addr.sin_port = htons(8108);
+    spines_addr.sin_port = htons(target.port);
 
     if (spines_init(daemon_ptr) < 0) {
         printf("Couldn't spines_init\n");
@@ -114,7 +121,7 @@ int createInbound(int port) {
     inbound_addr.sin_port = htons(port);
 
     printf("Binding inbound...\n");
-    if (bind(inbound_sk, (struct sockaddr *)&inbound_addr, sizeof(inbound_addr)) < 0 ) {
+    if (bind(inbound_sk, (struct sockaddr *)&inbound_addr, sizeof(inbound_addr)) < 0) {
         printf("Bind for recv socket failed\n");
         return 0;
     } else {
@@ -124,6 +131,9 @@ int createInbound(int port) {
     FD_ZERO(&mask);
     FD_ZERO(&dummy_mask);
     FD_SET(inbound_sk, &mask);
+
+    // Unblocks the wait. Need a better way to do this.
+    done = port;
 
     for(;;) {
         temp_mask = mask;
@@ -153,10 +163,10 @@ int createInbound(int port) {
 
 void *createOutbound_thread(void *target) {
     Location *location = (Location*)target;
-    while (!createOutbound(getNextPort(), *location)) { }
+    createOutbound(*location);
 }
 
-int createOutbound(int port, Location target) {
+int createOutbound(Location target) {
     int out_socket, spines_sk;
     int ret, bytes;
     char buffer[MAX_PKT_SIZE];
@@ -170,7 +180,7 @@ int createOutbound(int port, Location target) {
 
     spines_daemon_addr.sin_family = AF_INET;
     spines_daemon_addr.sin_port = htons(8100); // Default Spines port
-    host_ptr = gethostbyname("localhost" /* 10.0.3.3 */); // TODO I'm only going to be running spines in that node
+    host_ptr = gethostbyname(hostname);
     memcpy(&spines_daemon_addr.sin_addr, host_ptr->h_addr, sizeof(struct in_addr));
     daemon_ptr = (struct sockaddr *)&spines_daemon_addr;
 
@@ -191,7 +201,7 @@ int createOutbound(int port, Location target) {
 
     spines_addr.sin_family = AF_INET;
     spines_addr.sin_addr.s_addr = INADDR_ANY;
-    spines_addr.sin_port = htons(port);
+    spines_addr.sin_port = htons(8108);
 
     if (spines_bind(spines_sk, (struct sockaddr *)&spines_addr, sizeof(spines_addr)) < 0) {
         printf("spines_bind error\n");
@@ -215,6 +225,9 @@ int createOutbound(int port, Location target) {
     FD_ZERO(&mask);
     FD_ZERO(&dummy_mask);
     FD_SET(spines_sk, &mask);
+
+    // Unblocks the wait. Need a better way to do this.
+    done = 8108;
 
     for(;;) {
         temp_mask = mask;

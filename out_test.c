@@ -4,11 +4,11 @@
 
 #include "agent_data.h"
 
-int createOutbound(int port, Location target);
+int createOutbound(Location target);
 
 int main(int argc, char *argv[]) {
-
+    set_hostname("localhost\0");
     Location location = {.address = "127.0.0.1\0", .port = 11999};
-    createOutbound(8108, location);
+    createOutbound(location);
     return 0;
 }
