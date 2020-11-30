@@ -27,7 +27,7 @@ void *createInbound_thread(void* target);
 int createInbound(int port);
 
 void *createOutbound_thread(void *target);
-int createOutbound(int port);
+int createOutbound(int port, Location target);
 
 void *createSrcIn_entry(void* arg);
 int createSrcIn(int port);
@@ -42,11 +42,12 @@ int create_interface(int inbound, Location target) {
 
     printf("Creating interface...\n");
     if (inbound) {
-        pthread_create(&thread_handle, NULL, createInbound_thread, (void *) &target);
+        pthread_create(&thread_handle, NULL, createInbound_thread, (void*)&target);
     } else {
-        pthread_create(&thread_handle, NULL, createOutbound_thread, (void *) &target);
+        pthread_create(&thread_handle, NULL, createOutbound_thread, (void*)&target);
     }
 
+    // This is okay because an agent control plane is single threaded
     while (!done) {
         // TODO barrier?
         usleep(500*1000);
@@ -57,8 +58,10 @@ int create_interface(int inbound, Location target) {
 }
 
 void *createInbound_thread(void* target) {
-    createInbound(2);
-    return NULL;
+    Location *location = (Location*)target;
+    while (!createInbound(getNextPort())) { }
+//    createInbound(2);
+//    return NULL;
 }
 
 int createInbound(int port) {
@@ -108,7 +111,7 @@ int createInbound(int port) {
 
     inbound_addr.sin_family = AF_INET;
     inbound_addr.sin_addr.s_addr = INADDR_ANY;
-    inbound_addr.sin_port = htons(11678 /*port*/);
+    inbound_addr.sin_port = htons(port);
 
     printf("Binding inbound...\n");
     if (bind(inbound_sk, (struct sockaddr *)&inbound_addr, sizeof(inbound_addr)) < 0 ) {
@@ -136,10 +139,11 @@ int createInbound(int port) {
         }
 
         /* Send over spines */
-        if (spines_sendto(spines_sk, buffer, bytes, 0, (struct sockaddr *)&spines_addr, sizeof(struct sockaddr)) < 0) {
+        bytes = spines_sendto(spines_sk, buffer, bytes, 0, (struct sockaddr *)&spines_addr, sizeof(struct sockaddr));
+        if (bytes < 0) {
             printf("Some spines_sendto error happened.\n");
         } else {
-            printf("Data sent.\n");
+            printf("Data sent: %d.\n", bytes);
         }
     }
 
@@ -148,10 +152,11 @@ int createInbound(int port) {
 }
 
 void *createOutbound_thread(void *target) {
-    while (!createOutbound(getNextPort())) { }
+    Location *location = (Location*)target;
+    while (!createOutbound(getNextPort(), *location)) { }
 }
 
-int createOutbound(int port) {
+int createOutbound(int port, Location target) {
     int out_socket, spines_sk;
     int ret, bytes;
     char buffer[MAX_PKT_SIZE];
@@ -195,15 +200,17 @@ int createOutbound(int port) {
         printf("Spines socket bound\n");
     }
 
-    /*out_socket = socket(AF_INET, SOCK_DGRAM, 0);
+    out_socket = socket(AF_INET, SOCK_DGRAM, 0);
     if (out_socket < 0) {
-        printf("couldn't open outbound socket");
+        printf("couldn't open outbound socket\n");
         return 0;
-    }*/
+    } else {
+        printf("Outbound socket created.\n");
+    }
 
     out_addr.sin_family = AF_INET;
-    out_addr.sin_addr.s_addr = inet_addr("" /* NEED */);
-    out_addr.sin_port = htons(55 /* NEED */);
+    out_addr.sin_addr.s_addr = inet_addr(target.address);
+    out_addr.sin_port = htons(target.port);
 
     FD_ZERO(&mask);
     FD_ZERO(&dummy_mask);
@@ -221,87 +228,17 @@ int createOutbound(int port) {
                 printf("Disconnected by spines...\n");
                 break;
             } else {
-                printf("Got some data from spines\n");
+                buffer[bytes] = '\0';
+                printf("OUTBOUND | Got %d bytes data from spines\n", bytes);
                 printf("%s\n", buffer);
             }
 
-            //send(out_socket, buffer, sizeof(buffer), 0);
+            sendto(out_socket, buffer, bytes, 0, (struct sockaddr *)&out_addr, sizeof(out_addr));
         }
     }
 
     spines_close(spines_sk);
-    //close(out_socket);
-
-    return 1;
-}
-
-void *createSrcIn_entry(void* arg) {
-    while (!createSrcIn(++currentPort)) { }
-    // createSrcIn(++currentPort);
-}
-
-int createSrcIn(int port) {
-    int server_fd, client_fd;
-    char buf[MAX_PKT_SIZE];
-    //fd_set mask, mask_template, dummy_mask;
-    Message* message;
-
-    server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd < 0) {
-        printf("Problem opening TCP socket.\n");
-        return 0;
-    } else {
-        printf("Socket open\n");
-    }
-
-    struct sockaddr_in server_sockaddr, client_sockaddr;
-    server_sockaddr.sin_family = AF_INET;
-    server_sockaddr.sin_addr.s_addr = INADDR_ANY;
-    server_sockaddr.sin_port = htons(port);
-
-    if (bind(server_fd, (struct sockaddr *)&server_sockaddr, sizeof(server_sockaddr)) < 0) {
-        printf("Problem binding TCP socket\n");
-        return 0;
-    } else {
-        printf("Socket bound\n");
-    }
-
-//    FD_ZERO(&mask_template);
-//    FD_ZERO(&mask);
-//    FD_SET(tcp_in_fd, &mask_template);
-
-    if (listen(server_fd, 4) < 0){
-        printf("Error while listening\n");
-        return 0;
-    } else {
-        printf("Listening to socket\n");
-    }
-
-    socklen_t client_sockaddr_size = sizeof(struct sockaddr_in);
-    int terminate = 0;
-    while (!terminate) {
-        // Triggers create_interface to move on
-        done = port;
-
-        client_fd = accept(server_fd, (struct sockaddr *)&client_sockaddr, &client_sockaddr_size);
-
-        recv(client_fd, buf, sizeof(Message), 0);
-        fprintf(stderr, "Value of errno: %d\n", errno);
-        message = (Message*)buf;
-
-        printf("Received type: %d\n", message->type);
-        if (message->type == TYPE_PING) {
-            printf("PING!\n");
-            Message out = {.type = TYPE_PONG, .ack = { .data = 1234 } };
-            send(client_fd, &out, sizeof(Message), 0);
-        }else if (message->type == TYPE_TERMINATE) {
-            terminate = 1;
-        }
-
-        close(client_fd);
-    }
-
-    close(server_fd);
+    close(out_socket);
 
     return 1;
 }
