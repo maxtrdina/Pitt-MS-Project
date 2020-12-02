@@ -8,6 +8,6 @@
 #include "common.h"
 
 void set_hostname(char* hostname);
-int create_interface(int inbound, Location target);
+int create_interface(int inbound, Location target, int bypass);
 
 #endif //AGENT_DATA_H

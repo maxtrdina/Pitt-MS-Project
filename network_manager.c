@@ -39,7 +39,7 @@ int create_flow(RegisterFlow flow) {
 
     // Outbound
     Message message = { .type = TYPE_ADD_FLOW_ROUTING_OUTBOUND, .flowRouting = {
-            .flowId = flowId, .target = newFlow->originalDst
+            .flowId = flowId, .target = newFlow->originalDst, .bypass = flow.bypass
     } };
     printf("Outbound message prepped\n");
     Message* response = send_message_r(message, newFlow->newDst.address, newFlow->newDst.port, 1);
@@ -50,7 +50,7 @@ int create_flow(RegisterFlow flow) {
 
     // Inbound
     message = (Message){ .type = TYPE_ADD_FLOW_ROUTING_INBOUND, .flowRouting = {
-            .flowId = flowId, .target = { .address = "placeholder", .port = spinesPort }
+            .flowId = flowId, .target = { .address = "placeholder", .port = spinesPort }, .bypass = flow.bypass
     } };
     strcpy(message.flowRouting.target.address, target.location.address);
     printf("Inbound message prepped\n");
@@ -59,23 +59,25 @@ int create_flow(RegisterFlow flow) {
     newFlow->newDst.port = response->ack.data;
     printf("Agent opened port #%d\n", newFlow->newDst.port);
 
-    // Write the file the controller will read
-    // 1 million possible requests, increase if needed
-    char filename[21+6];
-    sprintf(filename, "ext_controller/reqs/r%d", flowId);
-    FILE *fptr = fopen(filename, "w");
-    fprintf(fptr, "%s", flow.switchAddr);
-    fprintf(fptr, "\n%s", flow.myIp);
-    fprintf(fptr, "\n%s", flow.myMac);
-    fprintf(fptr, "\n%s:%d-%s:%d", flow.dst.address, flow.dst.port, newFlow->newDst.address, newFlow->newDst.port);
-    fclose(fptr);
+    if (flow.bypass) {
+        // Write the file the controller will read
+        // 1 million possible requests, increase if needed
+        char filename[21 + 6];
+        sprintf(filename, "ext_controller/reqs/r%d", flowId);
+        FILE *fptr = fopen(filename, "w");
+        fprintf(fptr, "%s", flow.switchAddr);
+        fprintf(fptr, "\n%s", flow.myIp);
+        fprintf(fptr, "\n%s", flow.myMac);
+        fprintf(fptr, "\n%s:%d-%s:%d", flow.dst.address, flow.dst.port, newFlow->newDst.address, newFlow->newDst.port);
+        fclose(fptr);
 
-    char ackFilename[23+6];
-    sprintf(ackFilename, "ext_controller/reqs/ack%d", flowId);
-    while (!fileExists(ackFilename)) {
-        usleep(50*1000);
+        char ackFilename[23 + 6];
+        sprintf(ackFilename, "ext_controller/reqs/ack%d", flowId);
+        while (!fileExists(ackFilename)) {
+            usleep(50 * 1000);
+        }
+        remove(ackFilename);
     }
-    remove(ackFilename);
 
     map_insert(map, flowId, newFlow);
 

@@ -32,8 +32,8 @@ int createInbound(int port, Location target);
 void *createOutbound_thread(void *target);
 int createOutbound(Location target);
 
-void *createSrcIn_entry(void* arg);
-int createSrcIn(int port);
+void *createBypass_thread(void* target);
+int createBypass(int port, Location target);
 
 int getNextPort() {
     return currentPort++;
@@ -43,12 +43,14 @@ void set_hostname(char *new_hostname) {
     strcpy(hostname, new_hostname);
 }
 
-int create_interface(int inbound, Location target) {
+int create_interface(int inbound, Location target, int bypass) {
     pthread_t thread_handle;
     done = 0;
 
     printf("Creating interface...\n");
-    if (inbound) {
+    if (bypass) {
+        pthread_create(&thread_handle, NULL, createBypass_thread, (void*)&target);
+    } else if (inbound) {
         pthread_create(&thread_handle, NULL, createInbound_thread, (void*)&target);
     } else {
         pthread_create(&thread_handle, NULL, createOutbound_thread, (void*)&target);
@@ -254,4 +256,81 @@ int createOutbound(Location target) {
     close(out_socket);
 
     return 1;
+}
+
+void *createBypass_thread(void* target) {
+    Location *location = (Location*)target;
+    while (!createBypass(getNextPort(), *location)) {}
+}
+
+int createBypass(int port, Location target) {
+    int inbound_sk, outbound_sk;
+    int ret, bytes;
+    char buffer[MAX_PKT_SIZE];
+    struct sockaddr_in inbound_addr, outbound_addr;
+    fd_set mask, dummy_mask, temp_mask;
+
+    outbound_sk = socket(AF_INET, SOCK_DGRAM, 0);
+    if (outbound_sk < 0) {
+        printf("couldn't open outbound socket\n");
+        return 0;
+    } else {
+        printf("Outbound socket created.\n");
+    }
+
+    outbound_addr.sin_family = AF_INET;
+    outbound_addr.sin_addr.s_addr = inet_addr(target.address);
+    outbound_addr.sin_port = htons(target.port);
+
+    // Traffic from the sender
+    inbound_sk = socket(AF_INET, SOCK_DGRAM, 0);
+    if (inbound_sk < 0) {
+        printf("Couldn't open socket to get data from the sender\n");
+        return 0;
+    } else {
+        printf("inbound socket open\n");
+    }
+
+    inbound_addr.sin_family = AF_INET;
+    inbound_addr.sin_addr.s_addr = INADDR_ANY;
+    inbound_addr.sin_port = htons(port);
+
+    printf("Binding inbound...\n");
+    if (bind(inbound_sk, (struct sockaddr *)&inbound_addr, sizeof(inbound_addr)) < 0) {
+        printf("Bind for recv socket failed\n");
+        return 0;
+    } else {
+        printf("Bind for recv sock complete\n");
+    }
+
+    FD_ZERO(&mask);
+    FD_ZERO(&dummy_mask);
+    FD_SET(inbound_sk, &mask);
+
+    // Unblocks the wait. Need a better way to do this.
+    done = port;
+
+    for(;;) {
+        temp_mask = mask;
+        printf("Calling select...\n");
+        select(FD_SETSIZE, &temp_mask, &dummy_mask, &dummy_mask, NULL);
+
+        printf("Something exciting happened, receiving...\n");
+        bytes = recv(inbound_sk, buffer, sizeof(buffer), 0);
+        if (bytes < 0) {
+            break;
+        } else {
+            printf("Got %d bytes.\n", bytes);
+        }
+
+        bytes = sendto(outbound_sk, buffer, bytes, 0, (struct sockaddr *)&outbound_addr, sizeof(outbound_addr));
+        if (bytes < 0) {
+            printf("Some spines_sendto error happened.\n");
+        } else {
+            printf("Data sent: %d.\n", bytes);
+        }
+    }
+
+    close(inbound_sk);
+    close(outbound_sk);
 }

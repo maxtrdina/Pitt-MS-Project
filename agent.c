@@ -9,7 +9,6 @@
 #include "map.h"
 
 #define MAX_PKT_SIZE 1472
-#define IN_PORT      5678
 
 int main(int argc, char *argv[]) {
     /*int tcp_in_sock, udp_in_sock;

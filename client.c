@@ -53,40 +53,53 @@ void send_command(int option) {
                 .switchAddr = "\0", // 127.0.0.1:5005X
                 .myIp = "\0",
                 .myMac = "\0",
-                .dst = { .address = "10.0.2.2\0", .port = port++ }
+                .dst = { .address = "10.0.2.2\0", .port = 11999 },
+                .bypass = 1
         } };
         strcpy(message.registerFlow.switchAddr, switchAddr);
         strcpy(message.registerFlow.myIp, myIp);
         strcpy(message.registerFlow.myMac, myMac);
         expect_response = 1;
     } else if (option == 2) {
+        message = (Message){ .type = TYPE_REGISTER_FLOW, .registerFlow = {
+                .switchAddr = "\0", // 127.0.0.1:5005X
+                .myIp = "\0",
+                .myMac = "\0",
+                .dst = { .address = "127.0.0.1\0", .port = 11999 },
+                .bypass = 0
+        } };
+        strcpy(message.registerFlow.switchAddr, switchAddr);
+        strcpy(message.registerFlow.myIp, myIp);
+        strcpy(message.registerFlow.myMac, myMac);
+        expect_response = 1;
+    } else if (option == 3) {
         message = (Message){ .type = TYPE_DELETE_FLOW, .deleteFlow = { .flowId = 0 } };
         printf("Flow? ");
         scanf("%d", &message.deleteFlow.flowId);
-    } else if (option == 3) {
+    } else if (option == 4) {
         printf("PING!\n");
         message = (Message){ .type = TYPE_PING };
         Message* rec = send_message_r(message, "10.0.2.2", 5647, 1);
         if (rec->type == TYPE_PONG) {
             printf("PONG!\n");
         }
-    } else if (option == 4) {
+    } else if (option == 5) {
         printf("Creating outbound flow...\n");
         message = (Message) {.type = TYPE_ADD_FLOW_ROUTING_OUTBOUND, .flowRouting = {
                 .flowId = 999, .target = {.address = "127.0.0.1", .port = 11999}
         }};
-        strcpy(target.address, "127.0.0.1\0");
+        strcpy(target.address, "10.0.3.3\0");
         target.port = AGENT_CONTROL_PORT;
         expect_response = 1;
-    } else if (option == 5) {
+    } else if (option == 6) {
         printf("Creating inbound flow...\n");
         message = (Message) {.type = TYPE_ADD_FLOW_ROUTING_INBOUND, .flowRouting = {
                 .flowId = 999, .target = {.address = "localhost", .port = 8108}
         }};
-        strcpy(target.address, "127.0.0.1\0");
+        strcpy(target.address, "10.0.3.3\0");
         target.port = AGENT_CONTROL_PORT;
         expect_response = 1;
-    } else if (option == 6) {
+    } else if (option == 7) { // For local tests only
         message = (Message){ .type = TYPE_REGISTER_FLOW, .registerFlow = {
                 .switchAddr = "\0", // 127.0.0.1:5005X
                 .myIp = "\0",

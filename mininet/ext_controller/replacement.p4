@@ -226,11 +226,11 @@ control MyIngress(inout headers hdr,
         const entries = {
             // Incoming traffic rules, identified by source IP and port
             // Type: ( srcIp, srcPort, my_host_ip, _): fake_source()
-            ( 8w10++8w0++8w3++8w3, 11568, my_host_ip, _): fake_source(my_host_mac, 8w10++8w0++8w2++8w2, 5647, 1);
+            ( 8w10++8w0++8w3++8w3, 11568, my_host_ip, _): fake_source(my_host_mac, 8w10++8w0++8w2++8w2, 11999, 1);
             
             // Outgoing traffic rules, identified by destination IP and port
             // Type: ( my_host_ip, _, dstIp, dstPort): reroute()
-            ( my_host_ip, _, 8w10++8w0++8w2++8w2, 5647): reroute(next_hop_mac, 8w10++8w0++8w3++8w3, 11568, 2);
+            ( my_host_ip, _, 8w10++8w0++8w2++8w2, 11999): reroute(next_hop_mac, 8w10++8w0++8w3++8w3, 11568, 2);
             
             // All incoming traffic not captured by other rules
             ( _, _, my_host_ip, _) : forward(my_host_mac, 1);
@@ -260,11 +260,11 @@ control MyIngress(inout headers hdr,
         const entries = {
             // Incoming traffic rules, identified by source IP and port
             // Type: ( srcIp, srcPort, my_host_ip, _): fake_source()
-            ( 8w10++8w0++8w3++8w3, 11568, my_host_ip, _): fake_source(my_host_mac, 8w10++8w0++8w2++8w2, 5647, 1);
+            ( 8w10++8w0++8w3++8w3, 11568, my_host_ip, _): fake_source(my_host_mac, 8w10++8w0++8w2++8w2, 11999, 1);
             
             // Outgoing traffic rules, identified by destination IP and port
             // Type: ( my_host_ip, _, dstIp, dstPort): reroute()
-            ( my_host_ip, _, 8w10++8w0++8w2++8w2, 5647): reroute(next_hop_mac, 8w10++8w0++8w3++8w3, 11568, 2);
+            ( my_host_ip, _, 8w10++8w0++8w2++8w2, 11999): reroute(next_hop_mac, 8w10++8w0++8w3++8w3, 11568, 2);
             
             // All incoming traffic not captured by other rules
             ( _, _, my_host_ip, _) : forward(my_host_mac, 1);

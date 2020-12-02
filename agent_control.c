@@ -73,7 +73,7 @@ void run_control() {
         if (message->type == TYPE_ADD_FLOW_ROUTING_INBOUND) {
             Location target = message->flowRouting.target;
             printf("Request to add inbound flow routing to %s:%d\n", target.address, target.port);
-            int port = create_interface(1, target);
+            int port = create_interface(1, target, message->flowRouting.bypass);
             printf("Interface created at %d.\n", port);
             add_flow_routing(message->flowRouting);
             Message out = {.type = TYPE_ACK, .ack = { .data = port } };
@@ -81,7 +81,7 @@ void run_control() {
         } else if (message->type == TYPE_ADD_FLOW_ROUTING_OUTBOUND) {
             Location target = message->flowRouting.target;
             printf("Request to add outbound flow routing to %s:%d\n", target.address, target.port);
-            int port = create_interface(0, target);
+            int port = create_interface(0, target, message->flowRouting.bypass);
             printf("Interface created at %d.\n", port);
             add_flow_routing(message->flowRouting);
             Message out = {.type = TYPE_ACK, .ack = { .data = port } };

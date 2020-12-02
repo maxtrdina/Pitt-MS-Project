@@ -2,9 +2,8 @@ import socket
 import sys
 
 
-f_out = open("h3_in.txt", "w")
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind(('localhost', 11999))
+sock.bind(('10.0.2.2', 11999))
 
 try:
     print "Accepting socket..."
@@ -14,11 +13,15 @@ try:
         print "Read some data..."
         
         print "Got some data: %s" % data.decode()
+        
+        f_out = open("h2_in.txt", "a")
         f_out.write("Received: ")
         f_out.write(data.decode())
+        f_out.write("\n")
+        f_out.close()
     
 except Exception as e:
     print e
 
 sock.close()
-f_out.close()
+
