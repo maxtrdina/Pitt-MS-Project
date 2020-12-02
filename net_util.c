@@ -26,10 +26,12 @@ Message* send_message_r(Message message, char* dstAddr, int dstPort, int expectR
         return NULL;
     }
 
+    printf("Before Addr\n");
     serv_addr.sin_family = AF_INET;
     serv_addr.sin_addr.s_addr = inet_addr(dstAddr);
     serv_addr.sin_port = htons(dstPort);
 
+    printf("Before Connect\n");
     if (connect(socket_fd, (struct sockaddr *)&serv_addr, sizeof(struct sockaddr_in)) < 0) {
         printf("ERROR connecting");
         return NULL;

@@ -29,6 +29,7 @@ int create_flow(RegisterFlow flow) {
     Agent* agents = getAgents();
     Agent target = *agents;
 
+    // Prep parameters
     printf("Creating flow, %s\n", flow.dst.address);
     Flow* newFlow = (Flow*)malloc(sizeof(Flow));
     strcpy(newFlow->switchAddr, flow.switchAddr);
@@ -36,11 +37,24 @@ int create_flow(RegisterFlow flow) {
     newFlow->newDst = target.location;
     printf("Flow populated\n");
 
-    Message message = { .type = TYPE_ADD_FLOW_ROUTING_INBOUND, .flowRouting = {
-            .flowId = flowId, .target = { .address = "11223344", .port = 55 }
+    // Outbound
+    Message message = { .type = TYPE_ADD_FLOW_ROUTING_OUTBOUND, .flowRouting = {
+            .flowId = flowId, .target = newFlow->originalDst
     } };
-    printf("Message prepped\n");
+    printf("Outbound message prepped\n");
     Message* response = send_message_r(message, newFlow->newDst.address, newFlow->newDst.port, 1);
+    // The port the agent opened for this flow
+    int spinesPort = response->ack.data;
+    printf("Agent opened spines port #%d\n", spinesPort);
+    free(response);
+
+    // Inbound
+    message = (Message){ .type = TYPE_ADD_FLOW_ROUTING_INBOUND, .flowRouting = {
+            .flowId = flowId, .target = { .address = "placeholder", .port = spinesPort }
+    } };
+    strcpy(message.flowRouting.target.address, target.location.address);
+    printf("Inbound message prepped\n");
+    response = send_message_r(message, newFlow->newDst.address, newFlow->newDst.port, 1);
     // The port the agent opened for this flow
     newFlow->newDst.port = response->ack.data;
     printf("Agent opened port #%d\n", newFlow->newDst.port);

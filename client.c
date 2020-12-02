@@ -87,6 +87,18 @@ void send_command(int option) {
         target.port = AGENT_CONTROL_PORT;
         expect_response = 1;
     } else if (option == 6) {
+        message = (Message){ .type = TYPE_REGISTER_FLOW, .registerFlow = {
+                .switchAddr = "\0", // 127.0.0.1:5005X
+                .myIp = "\0",
+                .myMac = "\0",
+                .dst = { .address = "127.0.0.1", .port = 11999 }
+        } };
+        strcpy(message.registerFlow.switchAddr, switchAddr);
+        strcpy(message.registerFlow.myIp, "127.0.0.1\0");
+        strcpy(message.registerFlow.myMac, myMac);
+        strcpy(target.address, "127.0.0.1\0");
+        expect_response = 1;
+    } else if (option == 99) {
         message = (Message){ .type = TYPE_PRINT_STATE };
     } else {
         return;
@@ -100,6 +112,8 @@ void send_command(int option) {
             printf("Outbound flow open on port %d\n", received->ack.data);
         } else if (option == 5) {
             printf("Inbound flow open on port %d\n", received->ack.data);
+        } else if (option == 6) {
+            printf("Flow created; id: %d\n", received->ack.data);
         }
         free(received);
     }
