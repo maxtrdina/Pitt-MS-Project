@@ -11,11 +11,14 @@ void initialize() {
     // TODO
 }
 
-Agent* getAgents() {
+Agent* getAgents(int bypass) {
     Agent* agents = (Agent*)malloc(sizeof(Agent));
-    // TODO this cannot be `localhost`
-    //strcpy(agents->location.address, "127.0.0.1\0");
-    strcpy(agents->location.address, "10.0.3.3");
+    if (bypass) {
+        strcpy(agents->location.address, "10.0.3.3");
+    } else {
+        // TODO this cannot be `localhost`
+        strcpy(agents->location.address, "127.0.0.1\0");
+    }
     agents->location.port = AGENT_CONTROL_PORT;
     return agents;
 }

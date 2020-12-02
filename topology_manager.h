@@ -12,6 +12,6 @@ typedef struct Agent_s {
 } Agent;
 
 void initialize();
-Agent* getAgents();
+Agent* getAgents(int bypass);
 
 #endif // MANAGER_TOPOLOGY_MANAGER_H

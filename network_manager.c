@@ -26,7 +26,7 @@ int create_flow(RegisterFlow flow) {
     int flowId = flow_ct++;
 
     //int agentCount = 1;
-    Agent* agents = getAgents();
+    Agent* agents = getAgents(flow.bypass);
     Agent target = *agents;
 
     // Prep parameters

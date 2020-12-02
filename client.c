@@ -71,6 +71,7 @@ void send_command(int option) {
         strcpy(message.registerFlow.switchAddr, switchAddr);
         strcpy(message.registerFlow.myIp, myIp);
         strcpy(message.registerFlow.myMac, myMac);
+        strcpy(target.address, "127.0.0.1\0");
         expect_response = 1;
     } else if (option == 3) {
         message = (Message){ .type = TYPE_DELETE_FLOW, .deleteFlow = { .flowId = 0 } };
