@@ -182,6 +182,12 @@ HelloWorld`
 Observe messages come through to the receive script. They will be displayed in the terminal and written to a file
 named h2-in.txt.
 
+### Troubleshooting
+
+Mininet is weird about how it uses ports, if you can't get things to work a second time within mininet, running
+a `make clean` should help.
+
 ## Acknowledgements
 
-Thanks 
+I thank my advisor, [Dr. Amy Babay](https://www.pitt.edu/~babay/), for her support in getting this project off
+the ground. Thanks!
