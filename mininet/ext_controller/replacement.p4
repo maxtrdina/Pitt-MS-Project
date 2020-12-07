@@ -243,10 +243,10 @@ control MyIngress(inout headers hdr,
         key = {
             // Source
             hdr.ipv4.srcAddr: optional;
-            hdr.tcp.srcPort: optional;
+            hdr.udp.srcPort: optional;
             // Destination
             hdr.ipv4.dstAddr: optional;
-            hdr.tcp.dstPort: optional;
+            hdr.udp.dstPort: optional;
         }
         actions = {
             reroute;
