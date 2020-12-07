@@ -73,11 +73,28 @@ part of the project in favor of rerouting and solving all the challenges it pres
 ### Switch Controller
 
 One of the limitations of mininet is that I couldn't find a way to talk to the switches within the virtual
-environment. Because of this, I needed give the manager the ability to communicate with an external entity
+environment. Because of this, I needed to give the manager the ability to communicate with an external entity
 running in the host OS (or yet another VM in my case). The way this was done was by having the manager write
 requests to the filesystem. This requests will be picked up by the controller, which will then be in charge of
 reprogramming the switch. This is just some duct tape I needed to put on to get the system to work in my
 environment, but this is not intended to be the case in production grade software.
+
+Currently, the controller takes requests in this format:
+
+```
+switch_address:runtime_port
+client_ip
+client_mac
+agent_ip:agent_port-destination_ip:destination_port
+```
+
+When run, the controller will look for files starting with `r`, process the above information, generate a brand
+new p4 file with the provided rerouting rule, compile the generated file, and install it in the switch. Ideally,
+the network manager would install and remove specific rules in the switch when creating and removing flows,
+respectively. This requires the manager to interface with the [P4Runtime](https://github.com/p4lang/p4runtime)
+API directly. The set of tools that I used to interface with the mininet switches were written in python; after
+careful consideration, I decided against reverse-engineering them to be able to install specific rules in the
+switch, as the goal is to have them integrated into a self contained network manager.
 
 ## Testbed
 
@@ -121,22 +138,50 @@ All the project binaries will be placed in mininet. These include:
 
 ## Testing
 
-I've only managed to bring up a single mininet console up to this point, which turned out to be a big annoyance.
-Because of this, testing was performed in several phases: locally with independent agents; locally with single,
-threaded agent; and within Mininet (yet to be done).
+Testing the system is a two step process. The manager and agent code, including the spines' connection and packet
+delivery, was tested primarily outside of mininet. When trying to end to end test the system I came across issues
+between spines and mininet. Because mininet used as a means to test the system, we decided to split testing in
+two parts:
 
-### Locally with independent agents
+- Traffic hijacking, within Mininet.
+- Traffic delivery through spines, outside of mininet.
 
-Two agents are set up using the `in_test` and `out_test` binaries. These create a spines connection on port 8108.
-Inbound receives traffic on port 11678 and outbound delivers traffic to port 11999. Get those running along with
-a Spines node on localhost and you'll see a client send packets and a "server" receive them.
+Together, these two demo the intended functionality of the system we implemented.
 
-### Locally with a single, threaded agent
+### Traffic hijacking
 
-The same set up, except a single agent on localhost controlled by the client. To run the agent, execute the
-`agent` binary. Options 4 and 5 in `client` set up the agent's threads properly.
+Tests that rules are installed in a switch upon request. This setup bypasses spines by opening a socket connection
+between the agent's inbound and outbound threads. Run the following commands from the [mininet](mininet) directory:
 
-### Within mininet
+- Run the controller with privileges in the host OS: `sudo python controller.py`
+- Start mininet: `make`
+- Run the `h2-rcv.py` script in host 2: `h2 python support/h2-rcv.py &`
+- Run the agent in host 3: `h3 ./agent 10.0.3.3 &`
+- Run the manager in host 3: `h3 ./manager &`
+- Run the client in host 1: `h1 ./client 1`
+- Select option 1
+- Use the `all-send.py` script to send messgaes to the receive script: `h2 python support/all-send.py 10.0.2.2 11999
+  HelloWorld`
 
-The only part that's left within the manager is setting up the agent's threads, after that and ironing out a
-couple other kinks, I'll test the system as a whole.
+Observe messages come through to the receive script. They will be written to a file named h2-in.txt.
+
+### Traffic delivery through spines
+
+Tests that the agent is capable of routing traffic through spines. Run the following commands from the
+[mininet](mininet) directory unless instructed otherwise:
+
+- Run a spines instance: `./spines -l 127.0.0.1` (can run from the spines dir)
+- Run the `h2-rcv-ext.py` script: `python support/h2-rcv-ext.py`
+- Run the agent: `./agent 127.0.0.1`
+- Run the manager: `./manager`
+- Run the client: `./client 1`
+- Select option 2
+- Use the `all-send.py` script to send messgaes to the receive script: `python support/all-send.py 127.0.0.1 11567
+HelloWorld`
+
+Observe messages come through to the receive script. They will be displayed in the terminal and written to a file
+named h2-in.txt.
+
+## Acknowledgements
+
+Thanks 

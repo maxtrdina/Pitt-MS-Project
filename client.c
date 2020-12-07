@@ -35,11 +35,9 @@ int main(int argc, char *argv[]) {
     printf("My MAC: %s\n", myMac);
 
     int select;
-    do {
-        printf("Option: ");
-        scanf("%d", &select);
-        send_command(select);
-    } while (select);
+    printf("Option: ");
+    scanf("%d", &select);
+    send_command(select);
 }
 
 void send_command(int option) {
@@ -128,17 +126,6 @@ void send_command(int option) {
             printf("Inbound flow open on port %d\n", received->ack.data);
         } else if (option == 6) {
             printf("Flow created; id: %d\n", received->ack.data);
-        }
-        free(received);
-    }
-
-    if (option == 1) {
-        printf("PING!\n");
-        Location loc = message.registerFlow.dst;
-        message = (Message){ .type = TYPE_PING };
-        received = send_message_r(message, /*"10.0.2.2\0"*/ loc.address, loc.port, 1);
-        if (received->type == TYPE_PONG) {
-            printf("PONG!\n");
         }
         free(received);
     }
