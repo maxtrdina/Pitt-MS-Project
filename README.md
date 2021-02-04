@@ -113,8 +113,11 @@ The mininet topology is created by an adaptation of the supporting utility of th
 
 - Python 2
 - GCC
+- P4C
 
 ## Setup
+
+Install the p4 compiler, instructions are outlined [here](https://github.com/p4lang/p4c#getting-started).
 
 P4 requires a few python packages. `make` in the [mininet](mininet) folder will bring those to light.
 
