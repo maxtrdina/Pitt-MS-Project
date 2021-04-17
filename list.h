@@ -10,7 +10,7 @@
 typedef struct List_s {
     int capacity;
     int size;
-    void **items
+    void **items;
 
     pthread_rwlock_t lock;
 } List;

@@ -19,18 +19,25 @@
 
 #define MAX_PKT_SIZE 1472
 
+typedef struct OutBoundData {
+    Location target;
+    Location node;
+    int sPort;
+};
+
 int done = 0;
 // Start data port
 int currentPort = 11567;
+//int spinesPort = 8108;
 
 // To configure for testing
 char hostname[16];
 
 void *createInbound_thread(void* target);
-int createInbound(int port, Location target);
+int createInbound(int port, Location target, Location node);
 
 void *createOutbound_thread(void *target);
-int createOutbound(Location target);
+int createOutbound(Location target, Location node, int sPort);
 
 void *createBypass_thread(void* target);
 int createBypass(int port, Location target);
@@ -43,7 +50,7 @@ void set_hostname(char *new_hostname) {
     strcpy(hostname, new_hostname);
 }
 
-int create_interface(int inbound, Location target, int bypass) {
+int create_interface(int inbound, Location target, Location node, int bypass, int spinesPort) {
     pthread_t thread_handle;
     done = 0;
 
@@ -51,9 +58,18 @@ int create_interface(int inbound, Location target, int bypass) {
     if (bypass) {
         pthread_create(&thread_handle, NULL, createBypass_thread, (void*)&target);
     } else if (inbound) {
-        pthread_create(&thread_handle, NULL, createInbound_thread, (void*)&target);
+        struct OutBoundData target_spines;
+        strcpy(target_spines.target.address, target.address);
+        target_spines.target.port = target.port;
+        target_spines.node = node;
+        pthread_create(&thread_handle, NULL, createInbound_thread, (void*)&target_spines);
     } else {
-        pthread_create(&thread_handle, NULL, createOutbound_thread, (void*)&target);
+        struct OutBoundData target_spines;
+        strcpy(target_spines.target.address, target.address);
+        target_spines.target.port = target.port;
+        target_spines.sPort = spinesPort;
+        target_spines.node = node;
+        pthread_create(&thread_handle, NULL, createOutbound_thread, (void*)&target_spines); // Creates a socket at the destination agent for sending data to.
     }
 
     // This is okay because an agent control plane is single threaded
@@ -67,13 +83,16 @@ int create_interface(int inbound, Location target, int bypass) {
 }
 
 void *createInbound_thread(void* target) {
-    Location *location = (Location*)target;
-    while (!createInbound(getNextPort(), *location)) { }
+    struct OutBoundData *target_spines = (struct OutBoundData*)target;
+    Location location = target_spines->target;
+    Location node = target_spines->node;
+    
+    while (!createInbound(getNextPort(), location, node)) { }
 //    createInbound(2);
 //    return NULL;
 }
 
-int createInbound(int port, Location target) {
+int createInbound(int port, Location target, Location node) {
     int inbound_sk, spines_sk;
     int ret, bytes;
     char buffer[MAX_PKT_SIZE];
@@ -85,9 +104,10 @@ int createInbound(int port, Location target) {
 
     spines_daemon_addr.sin_family = AF_INET;
     spines_daemon_addr.sin_port = htons(8100);
-    host_ptr = gethostbyname(hostname);
+    host_ptr = gethostbyname(node.address);
     memcpy(&spines_daemon_addr.sin_addr, host_ptr->h_addr, sizeof(struct in_addr));
-    daemon_ptr = (struct sockaddr *)&spines_daemon_addr;
+    //daemon_ptr = (struct sockaddr *)&spines_daemon_addr;    // does thsis have to be the port of the overlay node?
+    daemon_ptr = (struct sockaddr *)&node.port;;
 
     memcpy(&h_ent, gethostbyname(target.address), sizeof(h_ent));
     memcpy(&spines_addr.sin_addr, h_ent.h_addr, sizeof(spines_addr.sin_addr));
@@ -164,11 +184,14 @@ int createInbound(int port, Location target) {
 }
 
 void *createOutbound_thread(void *target) {
-    Location *location = (Location*)target;
-    createOutbound(*location);
+    struct OutBoundData *target_spines = (struct OutBoundData*)target;
+    Location location = target_spines->target;
+    Location node = target_spines->node;
+    printf("%16s: %d, spines port: %d\n", target_spines->target.address, target_spines->target.port, target_spines->sPort);
+    createOutbound(location, node, target_spines->sPort);
 }
 
-int createOutbound(Location target) {
+int createOutbound(Location target, Location node, int sPort) {
     int out_socket, spines_sk;
     int ret, bytes;
     char buffer[MAX_PKT_SIZE];
@@ -177,14 +200,24 @@ int createOutbound(Location target) {
     struct hostent  *host_ptr;
     struct sockaddr *daemon_ptr = NULL;
     fd_set  mask, dummy_mask, temp_mask;
+    //int sPort = spinesPort;
+    //spinesPort++;
 
     struct timeval *timeout_ptr;
 
     spines_daemon_addr.sin_family = AF_INET;
     spines_daemon_addr.sin_port = htons(8100); // Default Spines port
-    host_ptr = gethostbyname(hostname);
+    host_ptr = gethostbyname(node.address);
     memcpy(&spines_daemon_addr.sin_addr, host_ptr->h_addr, sizeof(struct in_addr));
-    daemon_ptr = (struct sockaddr *)&spines_daemon_addr;
+    //daemon_ptr = (struct sockaddr *)&spines_daemon_addr;       // Should this be the port number indicating the overlay instance
+    daemon_ptr = (struct sockaddr *)&node.port;;
+
+    // HANDLE BAD PORT NUMBER
+
+    if (sPort == -1) {
+        printf("Can't initialize, bad port number\n");
+        return 0;
+    }
 
     if (spines_init(daemon_ptr) < 0) {
         printf("flooder_client: socket error\n");
@@ -203,7 +236,7 @@ int createOutbound(Location target) {
 
     spines_addr.sin_family = AF_INET;
     spines_addr.sin_addr.s_addr = INADDR_ANY;
-    spines_addr.sin_port = htons(8108);
+    spines_addr.sin_port = htons(sPort);
 
     if (spines_bind(spines_sk, (struct sockaddr *)&spines_addr, sizeof(spines_addr)) < 0) {
         printf("spines_bind error\n");
@@ -229,7 +262,7 @@ int createOutbound(Location target) {
     FD_SET(spines_sk, &mask);
 
     // Unblocks the wait. Need a better way to do this.
-    done = 8108;
+    done = sPort;
 
     for(;;) {
         temp_mask = mask;

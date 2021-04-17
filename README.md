@@ -113,11 +113,8 @@ The mininet topology is created by an adaptation of the supporting utility of th
 
 - Python 2
 - GCC
-- P4C
 
 ## Setup
-
-Install the p4 compiler, instructions are outlined [here](https://github.com/p4lang/p4c#getting-started).
 
 P4 requires a few python packages. `make` in the [mininet](mininet) folder will bring those to light.
 
@@ -163,7 +160,7 @@ between the agent's inbound and outbound threads. Run the following commands fro
 - Run the manager in host 3: `h3 ./manager &`
 - Run the client in host 1: `h1 ./client 1`
 - Select option 1
-- Use the `all-send.py` script to send messgaes to the receive script: `h1 python support/all-send.py 10.0.2.2 11999
+- Use the `all-send.py` script to send messgaes to the receive script: `h2 python support/all-send.py 10.0.2.2 11999
   HelloWorld`
 
 Observe messages come through to the receive script. They will be written to a file named h2-in.txt.

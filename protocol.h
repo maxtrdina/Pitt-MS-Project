@@ -36,7 +36,10 @@ typedef struct FlowRouting_s {
     // Outbound: Flow destination. ie. when the packets come out of spines, where do we send it?
     // Inbound: Spines destination. ie. where does the packet go when it comes out of the spines network?
     Location target;
+    Location node;
     int bypass;
+    int spinesPort;
+    int resources;
 } FlowRouting;
 
 typedef struct RemoveFlowRouting_s {
@@ -49,6 +52,9 @@ typedef struct RegisterFlow_s {
     char myMac[18];
     Location dst;
     int bypass;
+    int resources;
+    int inboundSite;
+    int outboundSite;
 } RegisterFlow;
 
 typedef struct DeleteFlow_s {

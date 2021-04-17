@@ -3,10 +3,13 @@ import sys
 
 
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind(('localhost', 11999))
+
+port = int( input("Please enter a listening port number: ") )
+
+sock.bind(('localhost', port))
 
 try:
-    print "Accepting socket..."
+    print("Accepting socket...")
     
     while True:
         data, addr = sock.recvfrom(4096)

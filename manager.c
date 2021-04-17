@@ -53,22 +53,22 @@ int main(char argc, char *argv[]) {
     while (!terminate) {
         client_fd = accept(server_fd, (struct sockaddr *)&client_sockaddr, &client_sockaddr_size);
 
-        recv(client_fd, buf, sizeof(Message), 0);
+        recv(client_fd, buf, sizeof(Message), 0);               // Manager receives message from the client
         message = (Message*)buf;
-        printf("Received message (%d)...\n", message->type);
+        printf("Received message (%d)...\n", message->type);    // Prints message type
 
-        if (message->type == TYPE_REGISTER_FLOW) {
+        if (message->type == TYPE_REGISTER_FLOW) {          // If type is Register Flow
             printf("Register Flow message.\n");
-            int flowId = create_flow(message->registerFlow);
-            Message out = {.type = TYPE_ACK, .ack = { .data = flowId } };
+            int flowId = create_flow(message->registerFlow);                // Create new flow using message data, returns flowID. create_flow is defined in Network_Manager.c
+            Message out = {.type = TYPE_ACK, .ack = { .data = flowId } };   // Create message to send back to Client
             send(client_fd, &out, sizeof(Message), 0);
-        } else if (message->type == TYPE_DELETE_FLOW) {
+        } else if (message->type == TYPE_DELETE_FLOW) {     // If type is Delete Flow
             printf("Delete Flow message.\n");
-            remove_flow(message->deleteFlow.flowId);
-        } else if (message->type == TYPE_TERMINATE) {
+            remove_flow(message->deleteFlow.flowId);    // Calls remove_flow, defined in Network_Manager.c
+        } else if (message->type == TYPE_TERMINATE) {       // If type is Terminate
             printf("Terminate message.\n");
             terminate = 1;
-        } else if (message->type == TYPE_PRINT_STATE) {
+        } else if (message->type == TYPE_PRINT_STATE) {     // If type is Print State
             nm_print_state();
         }
 
