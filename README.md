@@ -1,5 +1,3 @@
-I still need to modify this to fit with what I've done. -max
-
 # Masters Project
 
 A system capable of registering traffic flows and intercepting traffic at the switch level to reroute it to a

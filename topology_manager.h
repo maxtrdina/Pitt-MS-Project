@@ -27,6 +27,7 @@ typedef struct Site_s {
 } Site;
 
 void initialize();
+stdarr returnOverlays(int siteID);
 stdarr returnAgents(int siteID);
 Agent* getAgents(int bypass);
 

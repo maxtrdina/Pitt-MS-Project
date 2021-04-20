@@ -27,8 +27,8 @@ void initialize() {
 
     // OVERLAY NODE READ IN
 
-    stdarr_construct(&nodeArr, sizeof(Node), 0);
-    printf("Node array Size: %d\n", stdarr_size(&nodeArr));
+    //stdarr_construct(&nodeArr, sizeof(Node), 0);
+    //printf("Node array Size: %d\n", stdarr_size(&nodeArr));
 
     int nodeCount; // At this point, agents refer to individual instances of running overlay nodes at sites
     FILE* fPointer = fopen("node_list.txt", "r");
@@ -60,8 +60,8 @@ void initialize() {
 
     // AGENT READ IN
 
-    stdarr_construct(&agentArr, sizeof(Agent), 0);
-    printf("Agent array Size: %d\n", stdarr_size(&agentArr));
+    //stdarr_construct(&agentArr, sizeof(Agent), 0);
+    //printf("Agent array Size: %d\n", stdarr_size(&agentArr));
 
     int agentCount; // At this point, agents refer to individual instances of running overlay nodes at sites
     fPointer = fopen("site_list.txt", "r");
@@ -82,9 +82,9 @@ void initialize() {
     for (int i = 0; i < agentCount; i++) {
         tempAgent = malloc(sizeof(Agent));
         //printf("Successful Malloc\n");
-        fscanf(fPointer, "%15s %d %d %d\n", &tempAgent->location.address, &tempAgent->location.port, &tempAgent->siteID);
+        fscanf(fPointer, "%15s %d %d\n", &tempAgent->location.address, &tempAgent->location.port, &tempAgent->siteID);
         //printf("Successful read of data\n");
-        printf("%s:%d, located at site %d with a throughput of %d\n", tempAgent->location.address, tempAgent->location.port, tempAgent->siteID);
+        printf("%s:%d, located at site %d\n", tempAgent->location.address, tempAgent->location.port, tempAgent->siteID);
         stdarr_push_back(&agentArr, tempAgent);
         //printf("Successful Insert\n");
     }
