@@ -80,11 +80,7 @@ part of the project in favor of rerouting and solving all the challenges it pres
 
 To develop and test the system, I used the following topology:
 
-<IMAGE>
-
-![Topology](assets/Topology.png "Topology")
-
-
+![topology (1)](https://user-images.githubusercontent.com/77497547/118414091-affb3380-b670-11eb-85ac-83fec9768ba2.png)
 
 ## Requirements
 
