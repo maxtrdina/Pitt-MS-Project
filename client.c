@@ -63,33 +63,46 @@ void send_command(int option) {
         
         int usrPort;
         int resources;
-        int inboundSite;
-        int outboundSite;
+        int inboundAgent;
+        int outboundAgent;
+        int entryOverlaySite;
+        int exitOverlaySite;
+        char IP[16];
 
+        printf("Please specify the destination IP: ");
+        scanf("%15s", IP);   // Reads input from keyboard
         printf("Please specify a port number: ");
         scanf("%d", &usrPort);   // Reads input from keyboard
         printf("Please specify a resource requirement (int): ");
         scanf("%d", &resources);   // Reads input from keyboard
-        printf("Please specify an inbound site (int): ");
-        scanf("%d", &inboundSite);   // Reads input from keyboard
-        printf("Please specify an outbound site (int): ");
-        scanf("%d", &outboundSite);   // Reads input from keyboard
+        printf("Please specify an inbound Agent (int): ");
+        scanf("%d", &inboundAgent);   // Reads input from keyboard
+        printf("Please specify an outbound Agent (int): ");
+        scanf("%d", &outboundAgent);   // Reads input from keyboard
+        printf("Please specify an entry Overlay site (int): ");
+        scanf("%d", &entryOverlaySite);   // Reads input from keyboard
+        printf("Please specify an exit Overlay site (int): ");
+        scanf("%d", &exitOverlaySite);   // Reads input from keyboard
 
+        printf("IP ADDRESS: %s\n", IP);
 
         message = (Message){ .type = TYPE_REGISTER_FLOW, .registerFlow = {
                 .switchAddr = "\0", // 127.0.0.1:5005X
                 .myIp = "\0",
                 .myMac = "\0",
-                .dst = { .address = "127.0.0.1\0", .port = usrPort },
+                .dst = { .address = IP, .port = usrPort },
                 .bypass = 0,
                 .resources = resources,
-                .inboundSite = inboundSite,
-                .outboundSite = outboundSite
+                .inboundAgent = inboundAgent,
+                .outboundAgent = outboundAgent,
+                .entryOverlaySite = entryOverlaySite,
+                .exitOverlaySite = exitOverlaySite
         } };
         strcpy(message.registerFlow.switchAddr, switchAddr);
         strcpy(message.registerFlow.myIp, myIp);
         strcpy(message.registerFlow.myMac, myMac);
         strcpy(target.address, "127.0.0.1\0");
+        strcpy(message.registerFlow.dst.address , IP);
         expect_response = 1;
     } else if (option == 3) {                                                           // If user inputs 3
         message = (Message){ .type = TYPE_DELETE_FLOW, .deleteFlow = { .flowId = 0 } };

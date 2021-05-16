@@ -41,26 +41,36 @@ int create_flow(RegisterFlow flow) {
     //Agent target = *agents;                 // Will this work when there's more than one agent?
     // I'm assuming this is the point where selecting the correct agent will need to occur
 
-    stdarr outboundSite = returnOverlays(flow.outboundSite); // We are actually returning instanes of overlay nodes
-    stdarr inboundSite = returnOverlays(flow.inboundSite);
+    stdarr entrySites = returnOverlays(flow.entryOverlaySite); // We are actually returning instanes of overlay nodes
+    stdarr exitSites = returnOverlays(flow.exitOverlaySite);
 
-    
     // Outbound Agent Selection
 
-    Agent outboundAgent;
-    Agent inboundAgent;
+    Node entrySite;
+    Node exitSite;
+    printf("Getting Agents\n");
+    Agent outboundAgent = returnAgent(flow.outboundAgent);
+    printf("outbound agent: %s\n", outboundAgent.location.address);
+    Agent inboundAgent = returnAgent(flow.inboundAgent);
+    printf("inbound agent: %s\n", inboundAgent.location.address);
+    
+    printf("Selecting Nodes at each site\n");
     int found = 0;
-    for (int i = 0; i < stdarr_size(&outboundSite); i++) {
+    for (int i = 0; i < stdarr_size(&entrySites); i++) {
 
-        Agent* potentialAgent = stdarr_get(&outboundSite, NULL, i);
-        if (potentialAgent->throughput > 0) {
-            outboundAgent = *potentialAgent;
+        printf("currently considering outbound node\n");
+        stdit temp = *stdarr_get(&entrySites, &temp, i);
+        Node* potentialNode = (Node*)stdit_val(&temp);
+        if (potentialNode->throughput >= flow.resources) {
+            entrySite = *potentialNode;
             
-            for (int j = 0; j < stdarr_size(&inboundSite); j++) {
+            for (int j = 0; j < stdarr_size(&exitSites); j++) {
 
-                Agent* potentialAgent = stdarr_get(&inboundSite, NULL, i);
-                if (potentialAgent->throughput > 0 && potentialAgent->location.port == outboundAgent.location.port) {
-                    inboundAgent = *potentialAgent;
+                printf("currently considering inbound node\n");
+                stdit temp2 = *stdarr_get(&exitSites, &temp2, j);
+                Node* potentialNode2 = (Node*)stdit_val(&temp2);
+                if (potentialNode2->throughput >= flow.resources && potentialNode2->location.port == entrySite.location.port) {
+                    exitSite = *potentialNode2;
                     found = 1;
                     break;
                 }
@@ -79,7 +89,8 @@ int create_flow(RegisterFlow flow) {
         return -1;
     }
 
-    
+    printf("Entry Overlay: %s, port %d\n", entrySite.location.address, entrySite.location.port);
+    printf("Exit Overlay: %s, port %d\n", exitSite.location.address, exitSite.location.port);
     // Inbound Agent Selection
 
     //stdarr inboundSite = returnAgents(flow.inboundSite);
@@ -113,8 +124,9 @@ int create_flow(RegisterFlow flow) {
     Flow* newFlow = (Flow*)malloc(sizeof(Flow));        // Creates a new flow struct
     strcpy(newFlow->switchAddr, flow.switchAddr);       // Sets flow Switch Addr to that of passed flow info
     newFlow->originalDst = flow.dst;                    // Sets flow original destination to be that of passed flow info. This is defined by the client
-    newFlow->newDst = outboundAgent.location;                  // Sets new flow destination to be that of the agent best suited for delivery
+    newFlow->outDst = outboundAgent.location;                  // Sets new flow destination to be that of the agent best suited for delivery
     printf("Flow populated\n");
+    printf("Sending data to outbound agent: IP: %15s, Port: %d\n", newFlow->outDst.address, newFlow->outDst.port);
 
     int newPort = requestPort();
     if (newPort == -1) {
@@ -124,14 +136,14 @@ int create_flow(RegisterFlow flow) {
 
     // Outbound
     Message message = { .type = TYPE_ADD_FLOW_ROUTING_OUTBOUND, .flowRouting = { // prep message to the agent to create a new outbound flow, passing the client specified target
-            .flowId = flowId, .target = newFlow->originalDst, .bypass = flow.bypass, .spinesPort = newPort, .resources = flow.resources, 
-            .node = outboundAgent.location
+            .flowId = flowId, .target = newFlow->originalDst, .bypass = flow.bypass, .flowPort = newPort, .resources = flow.resources, 
+            .overlay = exitSite.location
     } };
 
     printf("There are currently %d registered flows\n", (int) stdhash_size(&portHash));
 
     printf("Outbound message prepped\n");
-    Message* response = send_message_r(message, newFlow->newDst.address, newFlow->newDst.port, 1); // Send message to agent. Create new flow and a port on dest. agent
+    Message* response = send_message_r(message, newFlow->outDst.address, newFlow->outDst.port, 1); // Send message to agent. Create new flow and a port on dest. agent
     // The port the agent opened for this flow
     int spinesPort = response->ack.data;                        // Document the port Spines created
     if (spinesPort > 0) {
@@ -146,17 +158,20 @@ int create_flow(RegisterFlow flow) {
 
     // Inbound
     message = (Message){ .type = TYPE_ADD_FLOW_ROUTING_INBOUND, .flowRouting = { // prep message to the agent to create a new inbound flow, passes target agent address and 
-            .flowId = flowId, .target = { .address = "placeholder", .port = spinesPort }, .bypass = flow.bypass, .resources = flow.resources,
-            .node = inboundAgent.location
+            .flowId = flowId, .target = { .address = exitSite.location.address, .port = newPort }, .bypass = flow.bypass, .flowPort = newPort, .resources = flow.resources,
+            .overlay = entrySite.location
     } };
-    strcpy(message.flowRouting.target.address, inboundAgent.location.address);
+    strcpy(message.flowRouting.target.address, exitSite.location.address);
+    newFlow->inDst = inboundAgent.location;
     printf("Inbound message prepped\n");
-    response = send_message_r(message, newFlow->newDst.address, newFlow->newDst.port, 1);
+    printf("Sending data to inbound agent: IP: %15s, Port: %d\n", newFlow->inDst.address, newFlow->inDst.port);
+    response = send_message_r(message, newFlow->inDst.address, newFlow->inDst.port, 1);
+    printf("Response port from inbound flow creation: %d\n", response->ack.data);
     // The port the agent opened for this flow
     int inboundPort = response->ack.data;
     if (inboundPort > 0){
-        newFlow->newDst.port = inboundPort;
-        printf("Agent opened port #%d\n", newFlow->newDst.port);
+        newFlow->inDst.port = inboundPort;
+        printf("Agent opened port #%d\n", newFlow->inDst.port);
     } else {
         printf("Couldn't open port.\n");
         flow_ct--;
@@ -172,7 +187,7 @@ int create_flow(RegisterFlow flow) {
         fprintf(fptr, "%s", flow.switchAddr);
         fprintf(fptr, "\n%s", flow.myIp);
         fprintf(fptr, "\n%s", flow.myMac);
-        fprintf(fptr, "\n%s:%d-%s:%d", flow.dst.address, flow.dst.port, newFlow->newDst.address, newFlow->newDst.port);
+        fprintf(fptr, "\n%s:%d-%s:%d", flow.dst.address, flow.dst.port, newFlow->outDst.address, newFlow->outDst.port);
         fclose(fptr);
 
         char ackFilename[23 + 6];
@@ -184,6 +199,7 @@ int create_flow(RegisterFlow flow) {
     }
 
     map_insert(map, flowId, newFlow);
+    reduceResources(entrySite.location.port, flow.resources);
 
     return flowId;
 }
@@ -202,7 +218,7 @@ void nm_print_state() {
                     "\tFlow #%d: from %s, %d to %s, %d\n",
                     map->keys[i],
                     flow.originalDst.address, flow.originalDst.port,
-                    flow.newDst.address, flow.newDst.port
+                    flow.outDst.address, flow.outDst.port
             );
         }
     }

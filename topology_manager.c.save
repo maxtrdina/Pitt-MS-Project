@@ -25,25 +25,22 @@ stdarr agentArr;
 
 void initialize() {
 
-
-    stdarr_construct(&agentArr, sizeof(Agent), 0);
-    stdarr_construct(&nodeArr, sizeof(Node), 0);
     // OVERLAY NODE READ IN
 
     //stdarr_construct(&nodeArr, sizeof(Node), 0);
     //printf("Node array Size: %d\n", stdarr_size(&nodeArr));
 
     int nodeCount; // At this point, agents refer to individual instances of running overlay nodes at sites
-    FILE* fPointer = fopen("overlay_list.txt", "r");
+    FILE* fPointer = fopen("node_list.txt", "r");
 
-    printf("Reading Overlay List\n");
+    printf("Reading node List\n");
 
     if(!fPointer) {
-        printf("Failed to open Overlay List\n");
+        printf("Failed to open node List\n");
     }
 
     fscanf(fPointer, "%d\n", &nodeCount);
-    printf("The number of Overlay sites is: %d\n", nodeCount);
+    printf("The number of nodes is: %d\n", nodeCount);
 
     //stdarr_resize(&agentArr, agentCount);
     //agentList = (Agent*)malloc(sizeof(Agent)*agentCount);
@@ -67,16 +64,16 @@ void initialize() {
     //printf("Agent array Size: %d\n", stdarr_size(&agentArr));
 
     int agentCount; // At this point, agents refer to individual instances of running overlay nodes at sites
-    fPointer = fopen("agent_list.txt", "r");
+    fPointer = fopen("site_list.txt", "r");
 
-    printf("Reading Agent List\n");
+    printf("Reading agent List\n");
 
     if(!fPointer) {
-        printf("Failed to open Agent List\n");
+        printf("Failed to open agent List\n");
     }
 
     fscanf(fPointer, "%d\n", &agentCount);
-    printf("The number of Agents is: %d\n", agentCount);
+    printf("The number of nodes is: %d\n", agentCount);
 
     //stdarr_resize(&agentArr, agentCount);
     //agentList = (Agent*)malloc(sizeof(Agent)*agentCount);
@@ -107,26 +104,25 @@ stdarr returnOverlays(int siteID) {
     stdarr returnArr;
     stdarr_construct(&returnArr, sizeof(Node), 0);
 
-    //printf("return array initialized\n");
+    printf("return array initialized\n");
 
-    for (int i = 0; i < size; i++) {
-	printf("currently viewing node %d\n", i);
+    while (i < size) {
+	printf("currently viewing node %d\n.", i);
         stdit temp = *(stdarr_get(&nodeArr, &temp, i));
 	//stdit* temp;
 	//stdit_ptr(temp, NULL, sizeof(Node));
 	//stdarr_get(&nodeArr, temp, i);
-	//printf("successfully created a stdit value for node %d\n", i);
+	printf("successfully created a stdit value for node %d\n", i);
         Node* tempNode = (Node*)stdit_val(&temp);
-	//printf("successfully created a temporary node for node %d\n", i);
-	printf("node %d has a site id of %d and a port number of %d\n", i, tempNode->siteID, tempNode->location.port);
+	printf("successfully created a temporary node for node %d\n", i);
+	printf("node %d has a site id of %d.\n", i, tempNode->siteID);
         if ( tempNode->siteID == siteID ) {
             stdarr_push_back(&returnArr, tempNode);
-	    }
+        }
 
+    return returnArr;
 
     }
-
-return returnArr;
 
 }
 
@@ -136,12 +132,11 @@ void reduceResources(int overlayPort, int amount) {
     int size = stdarr_size(&nodeArr);
 
     while (i < size) {
-        stdit temp = *(stdarr_get(&nodeArr, &temp, i));
-        Node* tempNode = (Node*)stdit_val(&temp);
+        stdit* temp = (stdarr_get(&nodeArr, NULL, i));
+        Node* tempNode = (Node*)stdit_val(temp);
         if (tempNode->location.port == overlayPort) {
             tempNode->throughput = tempNode->throughput - amount;
             }
-        i++;
     }
 }
 
@@ -151,19 +146,18 @@ void increaseResources(int overlayPort, int amount) {
     int size = stdarr_size(&nodeArr);
 
     while (i < size) {
-        stdit temp = *(stdarr_get(&nodeArr, &temp, i));
-        Node* tempNode = (Node*)stdit_val(&temp);
+        stdit* temp = (stdarr_get(&nodeArr, NULL, i));
+        Node* tempNode = (Node*)stdit_val(temp);
         if (tempNode->location.port == overlayPort) {
             tempNode->throughput = tempNode->throughput + amount;
             }
-        i++;
     }
 }
 
 Agent returnAgent(int siteID) {
     for (int i = 0; i < stdarr_size(&agentArr); i++) {
-        stdit temp = *(stdarr_get(&agentArr, &temp, i));
-        Agent* tempAgent = (Agent*)stdit_val(&temp);
+        stdit* temp = (stdarr_get(&agentArr, NULL, i));
+        Agent* tempAgent = (Agent*)stdit_val(temp);
 
         if (tempAgent->siteID == siteID) {
             return *tempAgent;

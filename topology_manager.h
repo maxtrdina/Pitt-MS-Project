@@ -28,7 +28,9 @@ typedef struct Site_s {
 
 void initialize();
 stdarr returnOverlays(int siteID);
-stdarr returnAgents(int siteID);
+Agent returnAgent(int siteID);
+void reduceResources(int overlayPort, int amount);
+void increaseResources(int overlayPort, int amount);
 Agent* getAgents(int bypass);
 
 #endif // MANAGER_TOPOLOGY_MANAGER_H

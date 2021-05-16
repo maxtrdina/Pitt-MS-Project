@@ -78,8 +78,8 @@ void run_control() {
             //if (resourceCapactiy >= message->flowRouting.resources){ // If we have capacity remaining
             //if (NULL == NULL) {
                 Location target = message->flowRouting.target;      
-                printf("Request to add inbound flow routing to %s:%d\n", target.address, target.port);
-                port = create_interface(1, target, message->flowRouting.node, message->flowRouting.bypass, 0);
+                printf("Request to add inbound flow routing to %s:%d\n", message->flowRouting.target.address, message->flowRouting.target.port);
+                port = create_interface(1, target, message->flowRouting.overlay, message->flowRouting.bypass, message->flowRouting.flowPort);
                 printf("Interface created at %d.\n", port);
                 add_flow_routing(message->flowRouting);
                 Message out = {.type = TYPE_ACK, .ack = { .data = port } };
@@ -99,7 +99,8 @@ void run_control() {
             //if (NULL == NULL) {    
                 Location target = message->flowRouting.target;      // This is the target specified by the client
                 printf("Request to add outbound flow routing to %s:%d\n", target.address, target.port);
-                port = create_interface(0, target, message->flowRouting.node, message->flowRouting.bypass, message->flowRouting.spinesPort);    // Calls create_interface, in agent_data.c. This creates a socket at the dest. agent
+                printf("value of 'flowPort' = %d\n", message->flowRouting.flowPort);
+                port = create_interface(0, target, message->flowRouting.overlay, message->flowRouting.bypass, message->flowRouting.flowPort);    // Calls create_interface, in agent_data.c. This creates a socket at the dest. agent
                 printf("Interface created at %d.\n", port);
                 add_flow_routing(message->flowRouting);
                 Message out = {.type = TYPE_ACK, .ack = { .data = port } };

@@ -11,7 +11,8 @@
 typedef struct Flow_s {
     char switchAddr[16];
     Location originalDst;
-    Location newDst;
+    Location outDst;
+    Location inDst;
     // TODO add backbone info
 } Flow;
 

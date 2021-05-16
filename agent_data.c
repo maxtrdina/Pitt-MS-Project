@@ -21,8 +21,8 @@
 
 typedef struct OutBoundData {
     Location target;
-    Location node;
-    int sPort;
+    Location overlay;
+    int flowPort;
 };
 
 int done = 0;
@@ -34,10 +34,10 @@ int currentPort = 11567;
 char hostname[16];
 
 void *createInbound_thread(void* target);
-int createInbound(int port, Location target, Location node);
+int createInbound(Location target, Location overlay, int flowPort);
 
 void *createOutbound_thread(void *target);
-int createOutbound(Location target, Location node, int sPort);
+int createOutbound(Location target, Location overlay, int flowPort);
 
 void *createBypass_thread(void* target);
 int createBypass(int port, Location target);
@@ -50,7 +50,7 @@ void set_hostname(char *new_hostname) {
     strcpy(hostname, new_hostname);
 }
 
-int create_interface(int inbound, Location target, Location node, int bypass, int spinesPort) {
+int create_interface(int inbound, Location target, Location overlay, int bypass, int flowPort) {
     pthread_t thread_handle;
     done = 0;
 
@@ -61,14 +61,15 @@ int create_interface(int inbound, Location target, Location node, int bypass, in
         struct OutBoundData target_spines;
         strcpy(target_spines.target.address, target.address);
         target_spines.target.port = target.port;
-        target_spines.node = node;
+        target_spines.overlay = overlay;
+        target_spines.flowPort = flowPort;
         pthread_create(&thread_handle, NULL, createInbound_thread, (void*)&target_spines);
     } else {
         struct OutBoundData target_spines;
         strcpy(target_spines.target.address, target.address);
         target_spines.target.port = target.port;
-        target_spines.sPort = spinesPort;
-        target_spines.node = node;
+        target_spines.flowPort = flowPort;
+        target_spines.overlay = overlay;
         pthread_create(&thread_handle, NULL, createOutbound_thread, (void*)&target_spines); // Creates a socket at the destination agent for sending data to.
     }
 
@@ -85,14 +86,15 @@ int create_interface(int inbound, Location target, Location node, int bypass, in
 void *createInbound_thread(void* target) {
     struct OutBoundData *target_spines = (struct OutBoundData*)target;
     Location location = target_spines->target;
-    Location node = target_spines->node;
+    Location overlay = target_spines->overlay;
+    int flowPort = target_spines->flowPort;
     
-    while (!createInbound(getNextPort(), location, node)) { }
+    while (!createInbound(location, overlay, flowPort)) { }
 //    createInbound(2);
 //    return NULL;
 }
 
-int createInbound(int port, Location target, Location node) {
+int createInbound(Location target, Location overlay, int flowPort) {
     int inbound_sk, spines_sk;
     int ret, bytes;
     char buffer[MAX_PKT_SIZE];
@@ -103,11 +105,11 @@ int createInbound(int port, Location target, Location node) {
     fd_set mask, dummy_mask, temp_mask;
 
     spines_daemon_addr.sin_family = AF_INET;
-    spines_daemon_addr.sin_port = htons(8100);
-    host_ptr = gethostbyname(node.address);
+    spines_daemon_addr.sin_port = htons(overlay.port);
+    host_ptr = gethostbyname(overlay.address);
     memcpy(&spines_daemon_addr.sin_addr, host_ptr->h_addr, sizeof(struct in_addr));
-    //daemon_ptr = (struct sockaddr *)&spines_daemon_addr;    // does thsis have to be the port of the overlay node?
-    daemon_ptr = (struct sockaddr *)&node.port;;
+    daemon_ptr = (struct sockaddr *)&spines_daemon_addr;    // does thsis have to be the port of the overlay node?
+    //daemon_ptr = (struct sockaddr *);
 
     memcpy(&h_ent, gethostbyname(target.address), sizeof(h_ent));
     memcpy(&spines_addr.sin_addr, h_ent.h_addr, sizeof(spines_addr.sin_addr));
@@ -140,7 +142,9 @@ int createInbound(int port, Location target, Location node) {
 
     inbound_addr.sin_family = AF_INET;
     inbound_addr.sin_addr.s_addr = INADDR_ANY;
-    inbound_addr.sin_port = htons(port);
+    inbound_addr.sin_port = htons(flowPort);
+
+    printf("value of 'port' is %d\n", flowPort);
 
     printf("Binding inbound...\n");
     if (bind(inbound_sk, (struct sockaddr *)&inbound_addr, sizeof(inbound_addr)) < 0) {
@@ -155,7 +159,7 @@ int createInbound(int port, Location target, Location node) {
     FD_SET(inbound_sk, &mask);
 
     // Unblocks the wait. Need a better way to do this.
-    done = port;
+    done = flowPort;
 
     for(;;) {
         temp_mask = mask;
@@ -186,12 +190,12 @@ int createInbound(int port, Location target, Location node) {
 void *createOutbound_thread(void *target) {
     struct OutBoundData *target_spines = (struct OutBoundData*)target;
     Location location = target_spines->target;
-    Location node = target_spines->node;
-    printf("%16s: %d, spines port: %d\n", target_spines->target.address, target_spines->target.port, target_spines->sPort);
-    createOutbound(location, node, target_spines->sPort);
+    Location overlay = target_spines->overlay;
+    printf("%16s: %d, spines port: %d\n", target_spines->target.address, target_spines->target.port, target_spines->flowPort);
+    createOutbound(location, overlay, target_spines->flowPort);
 }
 
-int createOutbound(Location target, Location node, int sPort) {
+int createOutbound(Location target, Location overlay, int flowPort) {
     int out_socket, spines_sk;
     int ret, bytes;
     char buffer[MAX_PKT_SIZE];
@@ -206,15 +210,16 @@ int createOutbound(Location target, Location node, int sPort) {
     struct timeval *timeout_ptr;
 
     spines_daemon_addr.sin_family = AF_INET;
-    spines_daemon_addr.sin_port = htons(8100); // Default Spines port
-    host_ptr = gethostbyname(node.address);
+    spines_daemon_addr.sin_port = htons(overlay.port); // Default Spines port
+    host_ptr = gethostbyname(overlay.address);
+    //memcpy(&spines_daemon_addr.sin_addr, host_ptr->h_addr, sizeof(struct in_addr));
     memcpy(&spines_daemon_addr.sin_addr, host_ptr->h_addr, sizeof(struct in_addr));
-    //daemon_ptr = (struct sockaddr *)&spines_daemon_addr;       // Should this be the port number indicating the overlay instance
-    daemon_ptr = (struct sockaddr *)&node.port;;
+    daemon_ptr = (struct sockaddr *)&spines_daemon_addr;       // Should this be the port number indicating the overlay instance
+    //daemon_ptr = (struct sockaddr *)&node.port;;
 
     // HANDLE BAD PORT NUMBER
 
-    if (sPort == -1) {
+    if (flowPort == -1) {
         printf("Can't initialize, bad port number\n");
         return 0;
     }
@@ -236,7 +241,7 @@ int createOutbound(Location target, Location node, int sPort) {
 
     spines_addr.sin_family = AF_INET;
     spines_addr.sin_addr.s_addr = INADDR_ANY;
-    spines_addr.sin_port = htons(sPort);
+    spines_addr.sin_port = htons(flowPort);
 
     if (spines_bind(spines_sk, (struct sockaddr *)&spines_addr, sizeof(spines_addr)) < 0) {
         printf("spines_bind error\n");
@@ -257,12 +262,14 @@ int createOutbound(Location target, Location node, int sPort) {
     out_addr.sin_addr.s_addr = inet_addr(target.address);
     out_addr.sin_port = htons(target.port);
 
+    printf("verification of destination info: %s:%d", target.address, target.port);
+
     FD_ZERO(&mask);
     FD_ZERO(&dummy_mask);
     FD_SET(spines_sk, &mask);
 
     // Unblocks the wait. Need a better way to do this.
-    done = sPort;
+    done = flowPort;
 
     for(;;) {
         temp_mask = mask;
