@@ -1,3 +1,9 @@
+# Before we Begin
+
+You may notice that this readme will be very similar to Izzy's readme. It differs in two primary ways:
+ - I did not use mininet for the testing/developing of my version of the project. Any sections pertaining to mininet have been eliminated
+ - As a result of the above difference, there is no programmable switch functionality present
+
 # Masters Project
 
 A system capable of registering traffic flows and intercepting traffic at the switch level to reroute it to a
@@ -44,7 +50,7 @@ to adapt the traffic to what a Spines node expects. A spines node receiving traf
 specific application headers. Having the requesting application include those application headers, though, would
 violate the minimal intervention clause, so the first attempt at adding them involved having the switch adding
 them. This turned out to be a problem, since making a header larger meant that a whole lot of state needed to be
-kept in the switch to map sequence numbers back and forward. Switches are not built for thi, so, had it been
+kept in the switch to map sequence numbers back and forward. Switches are not built for this, so, had it been
 possible to do, this kind of computation would have certainly hurt line speed.
 
 In light of this, we decided to add this component in between the switch and the spines node. Agents are compiled
@@ -60,7 +66,7 @@ A manager coordinates flow creation. This is the only component a client talks t
 operations: register flow and delete flow. When a client requests a flow to be created, the manager needs to
 make sure a number of things happen:
 
-- Appropriate in and out spines nodes are selected (currently there's only one).
+- Appropriate in and out spines nodes are used.
 - An inbound and outbound connections are started in their agents.
 - Switch forwarding and rerouting rules are installed in the client's switch.
 
@@ -70,44 +76,15 @@ In the original specification, the agent would keep track of a topology of clust
 creating and selecting overlays given the client's latency and bandwidth requirements. We wound up abandoning this
 part of the project in favor of rerouting and solving all the challenges it presented.
 
-### Switch Controller
-
-One of the limitations of mininet is that I couldn't find a way to talk to the switches within the virtual
-environment. Because of this, I needed to give the manager the ability to communicate with an external entity
-running in the host OS (or yet another VM in my case). The way this was done was by having the manager write
-requests to the filesystem. This requests will be picked up by the controller, which will then be in charge of
-reprogramming the switch. This is just some duct tape I needed to put on to get the system to work in my
-environment, but this is not intended to be the case in production grade software.
-
-Currently, the controller takes requests in this format:
-
-```
-switch_address:runtime_port
-client_ip
-client_mac
-agent_ip:agent_port-destination_ip:destination_port
-```
-
-When run, the controller will look for files starting with `r`, process the above information, generate a brand
-new p4 file with the provided rerouting rule, compile the generated file, and install it in the switch. Ideally,
-the network manager would install and remove specific rules in the switch when creating and removing flows,
-respectively. This requires the manager to interface with the [P4Runtime](https://github.com/p4lang/p4runtime)
-API directly. The set of tools that I used to interface with the mininet switches were written in python; after
-careful consideration, I decided against reverse-engineering them to be able to install specific rules in the
-switch, as the goal is to have them integrated into a self contained network manager.
-
 ## Testbed
 
-To develop and test the system, I used a three host, three switch mininet topology:
+To develop and test the system, I used the following topology:
+
+<IMAGE>
 
 ![Topology](assets/Topology.png "Topology")
 
-In this topology, hosts 1 and 2 can create flows and send traffic through the system. These nodes need to have a
-switch of their own to redirect traffic and fake traffic sources. S3 and H3 are reductions of the internet and
-the Spines backbone, respectively.
 
-The mininet topology is created by an adaptation of the supporting utility of the
-[P4 tutorials](https://github.com/p4lang/tutorials), feel free to check them out.
 
 ## Requirements
 
