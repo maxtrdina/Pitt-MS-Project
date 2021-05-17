@@ -1,8 +1,10 @@
 ## Before we Begin
 
-You may notice that this readme will be very similar to Izzy's readme. It differs in two primary ways:
+You may notice that this readme will be very similar to Izzy's readme. It differs in a few primary ways:
  - I did not use mininet for the testing/developing of my version of the project. Any sections pertaining to mininet have been eliminated
  - As a result of the above difference, there is no programmable switch functionality present
+ - The topology for testing is different
+ - There is a list a the end of the readme explaining what additional functionality has been added
 
 # Masters Project
 
