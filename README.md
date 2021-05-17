@@ -62,11 +62,12 @@ destination. These always come in pairs.
 
 ### Manager
 
-A manager coordinates flow creation. This is the only component a client talks to and, ideally, supports two
-operations: register flow and delete flow. When a client requests a flow to be created, the manager needs to
-make sure a number of things happen:
+A manager coordinates flow creation and manages resources associated with flow creation. This is the only 
+component a client talks to and, ideally, supports two operations: register flow and delete flow. When a 
+client requests a flow to be created, the manager needs to ensure several things:
 
 - Appropriate in and out spines nodes are used.
+- Selected spines nodes have available capacity
 - An inbound and outbound connections are started in their agents.
 - Switch forwarding and rerouting rules are installed in the client's switch.
 
@@ -154,7 +155,7 @@ the formatting that the overlay switch would normally be doing.
 ## Additional Functionality over Izzy's Version
 
 There are several differences between the functionality of Izzy's project and this one. Primarily, these are:
- - This version works with spines using a physical topology with multiple machines
+ - This version works with multiple spines instances using a physical topology with multiple machines
  - Support of multiple simultaneous flows
  - The Manager performs resource management in two forms
    - Spines port management on a per flow basis
