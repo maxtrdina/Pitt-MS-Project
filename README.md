@@ -1,4 +1,4 @@
-# Before we Begin
+## Before we Begin
 
 You may notice that this readme will be very similar to Izzy's readme. It differs in two primary ways:
  - I did not use mininet for the testing/developing of my version of the project. Any sections pertaining to mininet have been eliminated
@@ -111,54 +111,54 @@ All the project binaries will be placed in mininet. These include:
 
 ## Testing
 
-Testing the system is a two step process. The manager and agent code, including the spines' connection and packet
-delivery, was tested primarily outside of mininet. When trying to end to end test the system I came across issues
-between spines and mininet. Because mininet used as a means to test the system, we decided to split testing in
-two parts:
-
-- Traffic hijacking, within Mininet.
-- Traffic delivery through spines, outside of mininet.
-
-Together, these two demo the intended functionality of the system we implemented.
-
-### Traffic hijacking
-
-Tests that rules are installed in a switch upon request. This setup bypasses spines by opening a socket connection
-between the agent's inbound and outbound threads. Run the following commands from the [mininet](mininet) directory:
-
-- Run the controller with privileges in the host OS: `sudo python controller.py`
-- Start mininet: `make`
-- Run the `h2-rcv.py` script in host 2: `h2 python support/h2-rcv.py &`
-- Run the agent in host 3: `h3 ./agent 10.0.3.3 &`
-- Run the manager in host 3: `h3 ./manager &`
-- Run the client in host 1: `h1 ./client 1`
-- Select option 1
-- Use the `all-send.py` script to send messgaes to the receive script: `h2 python support/all-send.py 10.0.2.2 11999
-  HelloWorld`
-
-Observe messages come through to the receive script. They will be written to a file named h2-in.txt.
+My version of the project only tests the functionality of the Manager and Agent code. This can be done as follows
 
 ### Traffic delivery through spines
 
 Tests that the agent is capable of routing traffic through spines. Run the following commands from the
-[mininet](mininet) directory unless instructed otherwise:
+[mininet](mininet) directory on the machine corresponding to the name of the device on the topology diagram 
+unless instructed otherwise:
 
-- Run a spines instance: `./spines -l 127.0.0.1` (can run from the spines dir)
-- Run the `h2-rcv-ext.py` script: `python support/h2-rcv-ext.py`
-- Run the agent: `./agent 127.0.0.1`
-- Run the manager: `./manager`
-- Run the client: `./client 1`
-- Select option 2
-- Use the `all-send.py` script to send messgaes to the receive script: `python support/all-send.py 127.0.0.1 11567
-HelloWorld`
+- Run the Spines 1 instance: `./spines -l 10.0.3.103` (run from the spines dir)
+- Run the Spines 2 instance: `./spines -l 10.0.4.104` (run from the spines dir)
+- Run the `h2-rcv-ext.py` script on the Receiver: `python support/h2-rcv-ext.py`
+  - Input `10.0.6.106`
+  - Input `12345` 
+- Run the Agent 1 instance: `./agent 10.0.2.102`
+- Run the Agent 2 instance: `./agent 10.0.5.105`
+- Run the Manager: `./manager`
+- Run the Client: `./client 1`
+  - Select option 2
+  - Type `10.0.6.106`
+  - Type  `12345`
+  - Specify a flow value (30 to 50 is a good place to start)
+  - Type 0 for Inbound Agent 
+  - Type 1 for Outbound Agent
+  - Type 0 for Entry Overlay
+  - Type 1 for Exit Overlay
+- On the Client, use the `all-send.py` script to send messgaes to the receive script: `python support/all-send.py 10.0.2.102 8108 HelloWorld`
 
 Observe messages come through to the receive script. They will be displayed in the terminal and written to a file
 named h2-in.txt.
 
-### Troubleshooting
+Additional flows can be created by repeating the last two steps with a different port number, and running 
+the third step again with the same port number. To send data across these flows, repeat the last step but
+increment the port number by one to send on the correct flow. For example, if you are creating a second
+flow, you would use the command `python support/all-send.py 10.0.2.102 8109 HelloWorld`
 
-Mininet is weird about how it uses ports, if you can't get things to work a second time within mininet, running
-a `make clean` should help.
+NOTE: Because we don't have any overlay switches intercepting and modifying the client sends, the client
+must instead send data to the inbound agent using the port the agent uses to communicate with spines in
+order for the data to be sent through spines to the destination we specified. We are effectively doing
+the formatting that the overlay switch would normally be doing.
+
+## Additional Functionality over Izzy's Version
+
+There are several differences between the functionality of Izzy's project and this one. Primarily, these are:
+ - This version works with spines using a physical topology with multiple machines
+ - Support of multiple simultaneous flows
+ - The Manager performs resource management in two forms
+   - Spines port management on a per flow basis
+   - Spines overlay flow capacity management
 
 ## Acknowledgements
 
