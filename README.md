@@ -85,6 +85,11 @@ To develop and test the system, I used the following topology:
 
 ![topology (1)](https://user-images.githubusercontent.com/77497547/118414091-affb3380-b670-11eb-85ac-83fec9768ba2.png)
 
+The only special requirement of the topology is that the manager/client/sender must also have the ability to
+route data between the networks shown. For the purpose of testing here, it also simulates the various other devices'
+connection to the greater internet. If different addressing for the devices are used, the agent_list.txt and 
+overlay_list.txt files must be updated to reflect the new addressing used for agents/spines nodes.
+
 ## Requirements
 
 - Python 2
