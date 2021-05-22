@@ -105,6 +105,23 @@ Agent requires a few objects from Spines, so compile spines before compiling the
 
 To compile the project, run the build script (build.sh). You may need to make it executable.
 
+## File IO
+
+This project contains two text files containing information about agents and instances of overlay nodes.
+This is read in by the Topology Manager and is what the Manager uses when communicating to agents for
+flow creation. These files are called `agent_list.txt` and `overlay_list.txt`. They are contained in the
+`mininet/` folder and have the following formats:
+ 
+ <b>agent_list.txt</b></br>
+ The first line refers to the amount of agents described in the text file.
+ Each subsequent line contains the following info in the following order:
+ Agent IP Address, Agent port, Agent number (for user selection of agents)
+ 
+ <b>overlay_list.txt</b></br>
+ Once again, the first line refers to the amount of overlays described in the file.
+ Each subsequent line contains the following info in the following order:
+ Overlay Node IP address, Overlay port, Overlay Node number (for user selection of entry/exit nodes), resource value
+
 ## Artifacts
 
 Spines: the Spines executable will be in spines/daemon
@@ -168,7 +185,22 @@ There are several differences between the functionality of Izzy's project and th
    - Spines port management on a per flow basis
    - Spines overlay flow capacity management
 
+## Known Problems
+
+Currently, the way the project manages resources for overlays is by maintaining a resource value for each node
+in an overlay. When a flow is created, it decrements the specified resource value for the flow from the node
+if it is used as either an entry or and exit point from the spines overlay. Although this works for small, two node
+instances of spines, it is not logically correct for how Spines works.</br></br>
+Spines overlays should have a resource capacity for the entire overlay, which is decremented upon flow creation. This
+is because although we explicitly know what our entry and exit points from the overlay are, we do not know what path
+will be taken through the overlay, and therefore we must assume the capacity is lost everywhere.</br></br>
+In my version of the project, this resource management model is contained in the topology manager and in the network
+manager.
+
 ## Acknowledgements
 
 I thank my advisor, [Dr. Amy Babay](https://www.pitt.edu/~babay/), for her support in getting this project off
 the ground. Thanks!
+
+Although the above is straight from Izzy's readme, I second it. Thank you for the opportunity to contribute
+to an interesting and challenging project for my capstone!
