@@ -72,14 +72,17 @@ client requests a flow to be created, the manager needs to ensure several things
 - Selected spines nodes have available capacity
 - An inbound and outbound connections are started in their agents.
 - Switch forwarding and rerouting rules are installed in the client's switch.
+- The flow receives its own unique port number for sending thru spines
 
 Once those things have happened, the client can start sending traffic.
 
 In the original specification, the agent would keep track of a topology of clusters with machines with Spines nodes,
 creating and selecting overlays given the client's latency and bandwidth requirements. As it exists currently, the client
 specifies what Spines nodes and agents to use. The manager then checks agents and nodes specified by the user to ensure that
-they will work and have available flow, and then uses them for flow creation. The project is written in a way to facilitate the
-future implementation of manager selected agents/Spines nodes, but that does not exist today. 
+they will work and have available flow, and then uses them for flow creation. Upon flow creation, the resources required by 
+the new flow are decremented from the flow available on the spines nodes and the flow receives its own unique spines port 
+number. Checking for availability occurs before both of these tasks are performed. The project is written in a way to q
+facilitate the future implementation of manager selected agents/Spines nodes, but that does not exist today. 
 
 ## Testbed
 
