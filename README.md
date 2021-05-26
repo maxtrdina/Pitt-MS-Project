@@ -76,8 +76,10 @@ client requests a flow to be created, the manager needs to ensure several things
 Once those things have happened, the client can start sending traffic.
 
 In the original specification, the agent would keep track of a topology of clusters with machines with Spines nodes,
-creating and selecting overlays given the client's latency and bandwidth requirements. We wound up abandoning this
-part of the project in favor of rerouting and solving all the challenges it presented.
+creating and selecting overlays given the client's latency and bandwidth requirements. As it exists currently, the client
+specifies what Spines nodes and agents to use. The manager then checks agents and nodes specified by the user to ensure that
+they will work and have available flow, and then uses them for flow creation. The project is written in a way to facilitate the
+future implementation of manager selected agents/Spines nodes, but that does not exist today. 
 
 ## Testbed
 
