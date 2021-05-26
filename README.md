@@ -81,7 +81,7 @@ creating and selecting overlays given the client's latency and bandwidth require
 specifies what Spines nodes and agents to use. The manager then checks agents and nodes specified by the user to ensure that
 they will work and have available flow, and then uses them for flow creation. Upon flow creation, the resources required by 
 the new flow are decremented from the flow available on the spines nodes and the flow receives its own unique spines port 
-number. Checking for availability occurs before both of these tasks are performed. The project is written in a way to q
+number. Checking for availability occurs before both of these tasks are performed. The project is written in a way that should
 facilitate the future implementation of manager selected agents/Spines nodes, but that does not exist today. 
 
 ## Testbed
